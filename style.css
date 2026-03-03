@@ -12,10 +12,9 @@ body {
 }
 
 body {
-  min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: clamp(0.75rem, 2vw, 1.5rem);
+  padding: 12px;
   font-family: Arial, Helvetica, sans-serif;
   background: #050505;
   color: #fff;
@@ -23,8 +22,8 @@ body {
 
 .poster {
   position: relative;
-  width: min(100%, 720px);
-  aspect-ratio: 3 / 4;
+  width: 400px;
+  height: 600px;
   overflow: hidden;
   border-radius: 20px;
   isolation: isolate;
@@ -36,7 +35,7 @@ body {
 .background-layer {
   position: absolute;
   inset: -4%;
-  background-image: url("assets/cover.svg");
+  background-image: url("assets/cover.jpg");
   background-size: cover;
   background-position: center;
   filter: blur(10px) saturate(0.95);
@@ -67,20 +66,21 @@ body {
 
 .content {
   height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: space-between;
-  padding: clamp(1rem, 2.2vw, 1.65rem);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  justify-items: center;
+  align-items: start;
+  row-gap: 6px;
+  padding: 12px 14px 14px;
 }
 
 /* ==============================
    Album cover
 ================================ */
 .album-cover-wrap {
-  width: min(100%, 560px);
+  width: 348px;
   margin: 0;
-  padding-top: clamp(0.2rem, 1.6vh, 0.9rem);
+  justify-self: center;
 }
 
 .album-cover {
@@ -97,27 +97,29 @@ body {
    Player overlay
 ================================ */
 .player-overlay {
-  width: 500px;
-  align-self: end;
-  padding-bottom: 4px;
+  width: 348px;
+  align-self: stretch;
+  display: grid;
+  grid-template-rows: auto auto auto auto 1fr;
 }
 
 .wave-row {
   display: flex;
   justify-content: center;
-  margin-bottom: 12px;
+  margin-bottom: 2px;
 }
 
 .wave-bars {
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 50px;
+  gap: 5px;
+  height: 30px;
 }
 
 .wave-bars span {
-  width: 8px;
+  width: 5px;
   height: var(--h);
+  max-height: 28px;
   background: #fff;
   border-radius: 999px;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
@@ -127,15 +129,16 @@ body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
-  gap: 0.75rem;
+  gap: 0.35rem;
+  margin-top: 49px;
 }
 
 h1 {
   margin: 0;
   min-width: 0;
-  font-size: clamp(2rem, 3.2vw, 2.9rem);
+  font-size: 1.72rem;
   font-weight: 800;
-  line-height: 1.12;
+  line-height: 1.1;
   letter-spacing: -0.02em;
   white-space: nowrap;
   overflow: hidden;
@@ -146,23 +149,23 @@ h1 {
   border: 0;
   background: transparent;
   color: #fff;
-  width: 40px;
-  height: 40px;
+  width: 26px;
+  height: 26px;
   display: inline-grid;
   place-items: center;
-  font-size: 2.25rem;
+  font-size: 1.55rem;
   line-height: 1;
   padding: 0;
   cursor: default;
 }
 
 .artist-row {
-  margin: 0.55rem 0 1.2rem;
+  margin: 0.18rem 0 0.2rem;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 0.65rem;
-  font-size: clamp(1.1rem, 2.3vw, 1.75rem);
+  gap: 0.35rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: #f3f3f3;
 }
@@ -178,22 +181,22 @@ h1 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.6em;
-  height: 1.35em;
+  width: 1.5em;
+  height: 1.25em;
   background: rgba(255, 255, 255, 0.9);
   color: #0f0f0f;
-  font-size: 0.72em;
-  border-radius: 7px;
+  font-size: 0.62em;
+  border-radius: 6px;
   font-weight: 900;
 }
 
 .progress-wrap {
-  margin-bottom: clamp(1rem, 2.1vh, 1.5rem);
+  margin-bottom: 2px;
 }
 
 .progress-bar {
   width: 100%;
-  height: 10px;
+  height: 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.96);
   position: relative;
@@ -203,8 +206,8 @@ h1 {
   position: absolute;
   right: 18%;
   top: 50%;
-  width: 30px;
-  height: 30px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   transform: translate(50%, -50%);
   background: #fff;
@@ -212,10 +215,10 @@ h1 {
 }
 
 .time-row {
-  margin-top: 0.55rem;
+  margin-top: 0.35rem;
   display: flex;
   justify-content: space-between;
-  font-size: clamp(1.05rem, 1.9vw, 1.65rem);
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
@@ -223,10 +226,11 @@ h1 {
    Bottom controls
 ================================ */
 .controls {
+  align-self: end;
   display: grid;
   grid-template-columns: 1fr 1fr auto 1fr 1fr;
   align-items: center;
-  column-gap: 4px;
+  column-gap: 2px;
 }
 
 .icon {
@@ -234,13 +238,13 @@ h1 {
   border: 0;
   background: transparent;
   color: #fff;
-  min-height: 60px;
+  min-height: 38px;
   cursor: default;
 }
 
 .play {
-  width: 112px;
-  height: 112px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background: #fff;
   justify-self: center;
@@ -253,14 +257,14 @@ h1 {
   top: 31%;
   width: 0;
   height: 0;
-  border-top: 18px solid transparent;
-  border-bottom: 18px solid transparent;
-  border-left: 28px solid #111;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-left: 19px solid #111;
 }
 
 .previous,
 .next {
-  width: 82px;
+  width: 54px;
   justify-self: center;
 }
 
@@ -272,50 +276,50 @@ h1 {
   transform: translateY(-50%);
   width: 0;
   height: 0;
-  border-top: 20px solid transparent;
-  border-bottom: 20px solid transparent;
+  border-top: 13px solid transparent;
+  border-bottom: 13px solid transparent;
 }
 
 .previous::before {
-  border-right: 34px solid #fff;
-  left: 24px;
+  border-right: 22px solid #fff;
+  left: 17px;
 }
 
 .previous::after {
   content: "";
   position: absolute;
-  left: 16px;
+  left: 11px;
   top: 50%;
-  width: 6px;
-  height: 36px;
+  width: 4px;
+  height: 26px;
   background: #fff;
   transform: translateY(-50%);
 }
 
 .next::before {
-  border-left: 34px solid #fff;
-  right: 24px;
+  border-left: 22px solid #fff;
+  right: 17px;
 }
 
 .next::after {
   content: "";
   position: absolute;
-  right: 16px;
+  right: 11px;
   top: 50%;
-  width: 6px;
-  height: 36px;
+  width: 4px;
+  height: 26px;
   background: #fff;
   transform: translateY(-50%);
 }
 
 .shuffle::before {
   content: "⇄";
-  font-size: 2.75rem;
+  font-size: 1.75rem;
   line-height: 1;
 }
 
 .repeat::before {
   content: "↺";
-  font-size: 2.75rem;
+  font-size: 1.75rem;
   line-height: 1;
 }
