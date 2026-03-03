@@ -12,9 +12,10 @@ body {
 }
 
 body {
+  min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 12px;
+  padding: clamp(0.75rem, 2vw, 1.5rem);
   font-family: Arial, Helvetica, sans-serif;
   background: #050505;
   color: #fff;
@@ -22,8 +23,8 @@ body {
 
 .poster {
   position: relative;
-  width: 600px;
-  height: 800px;
+  width: min(100%, 720px);
+  aspect-ratio: 3 / 4;
   overflow: hidden;
   border-radius: 20px;
   isolation: isolate;
@@ -66,22 +67,20 @@ body {
 
 .content {
   height: 100%;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  justify-items: center;
-  align-items: start;
-  row-gap: 12px;
-  padding: 16px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(1rem, 2.2vw, 1.65rem);
 }
 
 /* ==============================
    Album cover
 ================================ */
 .album-cover-wrap {
-  width: 500px;
+  width: min(100%, 560px);
   margin: 0;
-  align-self: start;
-  justify-self: center;
+  padding-top: clamp(0.2rem, 1.6vh, 0.9rem);
 }
 
 .album-cover {
