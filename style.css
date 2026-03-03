@@ -35,7 +35,7 @@ body {
 .background-layer {
   position: absolute;
   inset: -4%;
-  background-image: url("assets/cover.jpg");
+  background-image: var(--cover-image, url("assets/cover.jpg"));
   background-size: cover;
   background-position: center;
   filter: blur(10px) saturate(0.95);
