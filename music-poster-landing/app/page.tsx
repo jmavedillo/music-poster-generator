@@ -1,3 +1,6 @@
+import Image from "next/image";
+import { PosterExamples } from "./components/PosterExamples";
+
 const navItems = [
   { label: "How it Works", href: "#how-it-works" },
   { label: "FAQ", href: "#faq" },
@@ -58,28 +61,48 @@ export default function Home() {
         </header>
 
         <section className="mt-20 rounded-3xl border border-stone-200 bg-white px-8 py-14 md:px-14 md:py-20">
-          <p className="text-xs uppercase tracking-[0.28em] text-stone-500">Music Poster Generator</p>
-          <h1 className="mt-5 max-w-4xl text-4xl font-semibold leading-tight tracking-tight text-stone-900 md:text-6xl">
-            Turn any song into an elegant poster.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-stone-600">
-            Create beautifully composed music posters in moments—minimal, refined, and ready to share or print.
-          </p>
-          <div className="mt-10 flex flex-wrap gap-4">
-            <a
-              href="/create"
-              className="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700"
-            >
-              Launch App
-            </a>
-            <a
-              href="#how-it-works"
-              className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
-            >
-              Explore features
-            </a>
+          <div className="grid items-center gap-12 lg:grid-cols-[1fr_420px]">
+            <div>
+              <p className="text-xs uppercase tracking-[0.28em] text-stone-500">Music Poster Generator</p>
+              <h1 className="mt-5 max-w-4xl text-4xl font-semibold leading-tight tracking-tight text-stone-900 md:text-6xl">
+                Turn any song into an elegant poster.
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-stone-600">
+                Create beautifully composed music posters in moments—minimal, refined, and ready to share or print.
+              </p>
+              <div className="mt-10 flex flex-wrap gap-4">
+                <a
+                  href="/create"
+                  className="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700"
+                >
+                  Launch App
+                </a>
+                <a
+                  href="#how-it-works"
+                  className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100"
+                >
+                  Explore features
+                </a>
+              </div>
+            </div>
+
+            <div className="hidden lg:block">
+              <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white p-3 shadow-[0_14px_36px_rgba(15,23,42,0.07)]">
+                <Image
+                  src="/examples/conspiraciones-poster.jpg"
+                  alt="Featured poster preview"
+                  width={840}
+                  height={1080}
+                  className="h-auto w-full rounded-xl object-cover"
+                  sizes="420px"
+                  priority
+                />
+              </div>
+            </div>
           </div>
         </section>
+
+        <PosterExamples />
 
         <section id="how-it-works" className="mt-20">
           <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
