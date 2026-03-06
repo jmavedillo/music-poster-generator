@@ -2,7 +2,6 @@
   const defaults = {
     title: "Viajo Sin Ver (Remix) [feat De La...]",
     artists: "Jon Z, De La Ghetto, Almighty, Miky...",
-    tcur: "7:52",
     ttot: "9:29",
     cover: "assets/cover.svg",
   };
@@ -16,12 +15,52 @@
 
   const isValidTime = (value) => /^\d{1,2}:\d{2}$/.test(value);
 
+  const clampNumber = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  const formatTime = (totalSeconds) => {
+    const safeSeconds = clampNumber(Number(totalSeconds) || 0, 0, 59 * 60 + 59);
+    const minutes = Math.floor(safeSeconds / 60);
+    const seconds = safeSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  };
+
+  const parseTime = (value) => {
+    if (!isValidTime(value)) return null;
+
+    const [minutes, seconds] = value.split(":").map(Number);
+    if (seconds > 59) return null;
+
+    return minutes * 60 + seconds;
+  };
+
+  const buildDurationOptions = (selectEl, maxValue) => {
+    if (!selectEl) return;
+
+    selectEl.innerHTML = "";
+
+    for (let i = 0; i <= maxValue; i += 1) {
+      const option = document.createElement("option");
+      option.value = String(i);
+      option.textContent = String(i).padStart(2, "0");
+      selectEl.append(option);
+    }
+  };
+
+  const getElapsedTime = (totalTime) => {
+    const parsedTotal = parseTime(totalTime);
+    if (parsedTotal === null) return formatTime(Math.round(0.8 * parseTime(defaults.ttot)));
+
+    return formatTime(Math.round(parsedTotal * 0.8));
+  };
+
   const setupPanelEl = document.getElementById("setup-panel");
   const posterEl = document.getElementById("poster");
   const formEl = document.getElementById("poster-form");
   const titleInputEl = document.getElementById("title-input");
   const artistInputEl = document.getElementById("artist-input");
   const coverInputEl = document.getElementById("cover-input");
+  const durationMinutesEl = document.getElementById("duration-minutes");
+  const durationSecondsEl = document.getElementById("duration-seconds");
 
   const titleEl = document.getElementById("track-title");
   const artistsEl = document.getElementById("track-artists");
@@ -31,8 +70,9 @@
   const backgroundLayerEl = document.getElementById("background-layer");
 
   const applyPosterValues = (values) => {
-    if (!isValidTime(values.tcur)) values.tcur = defaults.tcur;
     if (!isValidTime(values.ttot)) values.ttot = defaults.ttot;
+
+    values.tcur = getElapsedTime(values.ttot);
 
     if (titleEl) titleEl.textContent = values.title;
     if (artistsEl) artistsEl.textContent = values.artists;
@@ -57,7 +97,6 @@
   const initialValues = {
     title: getParam("title"),
     artists: getParam("artists"),
-    tcur: getParam("tcur"),
     ttot: getParam("ttot"),
     cover: getParam("cover"),
   };
@@ -69,6 +108,15 @@
 
   if (titleInputEl) titleInputEl.value = initialValues.title;
   if (artistInputEl) artistInputEl.value = initialValues.artists;
+
+  buildDurationOptions(durationMinutesEl, 59);
+  buildDurationOptions(durationSecondsEl, 59);
+
+  const initialTotalSeconds = parseTime(initialValues.ttot) ?? parseTime(defaults.ttot);
+  if (initialTotalSeconds !== null) {
+    if (durationMinutesEl) durationMinutesEl.value = String(Math.floor(initialTotalSeconds / 60));
+    if (durationSecondsEl) durationSecondsEl.value = String(initialTotalSeconds % 60);
+  }
 
   applyPosterValues(initialValues);
 
@@ -88,8 +136,7 @@
     const values = {
       title: titleInputEl?.value?.trim() || defaults.title,
       artists: artistInputEl?.value?.trim() || defaults.artists,
-      tcur: defaults.tcur,
-      ttot: defaults.ttot,
+      ttot: formatTime((Number(durationMinutesEl?.value) || 0) * 60 + (Number(durationSecondsEl?.value) || 0)),
       cover: fileUrl,
     };
 
