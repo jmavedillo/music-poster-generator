@@ -71,6 +71,9 @@
   const songSearchInputEl = document.getElementById("song-search-input");
   const artistsSuggestionsEl = document.getElementById("artists-suggestions");
   const tracksSuggestionsEl = document.getElementById("tracks-suggestions");
+  const trackPreviewEl = document.getElementById("track-preview");
+  const trackPreviewCoverEl = document.getElementById("track-preview-cover");
+  const trackPreviewMetaEl = document.getElementById("track-preview-meta");
 
   const titleEl = document.getElementById("track-title");
   const artistsEl = document.getElementById("track-artists");
@@ -211,6 +214,27 @@
     );
   };
 
+  const hideTrackPreview = () => {
+    trackPreviewEl?.classList.add("hidden");
+  };
+
+  const renderTrackPreview = (track) => {
+    if (!track || !trackPreviewEl || !trackPreviewCoverEl || !trackPreviewMetaEl) {
+      hideTrackPreview();
+      return;
+    }
+
+    const artists = getTrackArtists(track);
+    trackPreviewCoverEl.setAttribute("src", resolveCoverUrl(track.coverUrl));
+    trackPreviewCoverEl.setAttribute("alt", `${track.title} cover preview`);
+    trackPreviewMetaEl.textContent = artists ? `${track.title} — ${artists}` : track.title;
+    trackPreviewEl.classList.remove("hidden");
+  };
+
+  const refreshTrackPreview = () => {
+    renderTrackPreview(findTrackFromInputs());
+  };
+
   const initialPosterData = {
     track: {
       title: getParam("title"),
@@ -229,6 +253,7 @@
 
   refreshArtistSuggestions();
   refreshTrackSuggestions();
+  refreshTrackPreview();
   renderPoster(initialPosterData);
 
   if (hasQueryPosterData) {
@@ -238,8 +263,12 @@
   artistSearchInputEl?.addEventListener("input", () => {
     refreshArtistSuggestions();
     refreshTrackSuggestions();
+    refreshTrackPreview();
   });
-  songSearchInputEl?.addEventListener("input", refreshTrackSuggestions);
+  songSearchInputEl?.addEventListener("input", () => {
+    refreshTrackSuggestions();
+    refreshTrackPreview();
+  });
 
   if (!formEl) return;
 
