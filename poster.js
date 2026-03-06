@@ -69,23 +69,37 @@
   const coverImageEl = document.getElementById("cover-image");
   const backgroundLayerEl = document.getElementById("background-layer");
 
-  const applyPosterValues = (values) => {
-    if (!isValidTime(values.ttot)) values.ttot = defaults.ttot;
+  const normalizePosterData = (posterData) => {
+    const totalTime = isValidTime(posterData?.track?.totalTime) ? posterData.track.totalTime : defaults.ttot;
 
-    values.tcur = getElapsedTime(values.ttot);
+    return {
+      track: {
+        title: posterData?.track?.title?.trim() || defaults.title,
+        artists: posterData?.track?.artists?.trim() || defaults.artists,
+        currentTime: posterData?.track?.currentTime || getElapsedTime(totalTime),
+        totalTime,
+      },
+      artwork: {
+        coverUrl: posterData?.artwork?.coverUrl || defaults.cover,
+      },
+    };
+  };
 
-    if (titleEl) titleEl.textContent = values.title;
-    if (artistsEl) artistsEl.textContent = values.artists;
-    if (currentTimeEl) currentTimeEl.textContent = values.tcur;
-    if (totalTimeEl) totalTimeEl.textContent = values.ttot;
+  const renderPoster = (posterData) => {
+    const safePosterData = normalizePosterData(posterData);
+
+    if (titleEl) titleEl.textContent = safePosterData.track.title;
+    if (artistsEl) artistsEl.textContent = safePosterData.track.artists;
+    if (currentTimeEl) currentTimeEl.textContent = safePosterData.track.currentTime;
+    if (totalTimeEl) totalTimeEl.textContent = safePosterData.track.totalTime;
 
     if (coverImageEl) {
-      coverImageEl.setAttribute("src", values.cover);
+      coverImageEl.setAttribute("src", safePosterData.artwork.coverUrl);
     }
 
     if (backgroundLayerEl) {
-      backgroundLayerEl.style.setProperty("--cover-image", `url("${values.cover}")`);
-      backgroundLayerEl.style.backgroundImage = `url("${values.cover}")`;
+      backgroundLayerEl.style.setProperty("--cover-image", `url("${safePosterData.artwork.coverUrl}")`);
+      backgroundLayerEl.style.backgroundImage = `url("${safePosterData.artwork.coverUrl}")`;
     }
   };
 
@@ -94,11 +108,15 @@
     posterEl?.classList.remove("hidden");
   };
 
-  const initialValues = {
-    title: getParam("title"),
-    artists: getParam("artists"),
-    ttot: getParam("ttot"),
-    cover: getParam("cover"),
+  const initialPosterData = {
+    track: {
+      title: getParam("title"),
+      artists: getParam("artists"),
+      totalTime: getParam("ttot"),
+    },
+    artwork: {
+      coverUrl: getParam("cover"),
+    },
   };
 
   const hasQueryPosterData = ["title", "artists", "cover"].some((key) => {
@@ -106,19 +124,19 @@
     return Boolean(value && value.trim());
   });
 
-  if (titleInputEl) titleInputEl.value = initialValues.title;
-  if (artistInputEl) artistInputEl.value = initialValues.artists;
+  if (titleInputEl) titleInputEl.value = initialPosterData.track.title;
+  if (artistInputEl) artistInputEl.value = initialPosterData.track.artists;
 
   buildDurationOptions(durationMinutesEl, 59);
   buildDurationOptions(durationSecondsEl, 59);
 
-  const initialTotalSeconds = parseTime(initialValues.ttot) ?? parseTime(defaults.ttot);
+  const initialTotalSeconds = parseTime(initialPosterData.track.totalTime) ?? parseTime(defaults.ttot);
   if (initialTotalSeconds !== null) {
     if (durationMinutesEl) durationMinutesEl.value = String(Math.floor(initialTotalSeconds / 60));
     if (durationSecondsEl) durationSecondsEl.value = String(initialTotalSeconds % 60);
   }
 
-  applyPosterValues(initialValues);
+  renderPoster(initialPosterData);
 
   if (hasQueryPosterData) {
     showPoster();
@@ -133,14 +151,18 @@
     if (!file) return;
 
     const fileUrl = URL.createObjectURL(file);
-    const values = {
-      title: titleInputEl?.value?.trim() || defaults.title,
-      artists: artistInputEl?.value?.trim() || defaults.artists,
-      ttot: formatTime((Number(durationMinutesEl?.value) || 0) * 60 + (Number(durationSecondsEl?.value) || 0)),
-      cover: fileUrl,
+    const posterData = {
+      track: {
+        title: titleInputEl?.value || "",
+        artists: artistInputEl?.value || "",
+        totalTime: formatTime((Number(durationMinutesEl?.value) || 0) * 60 + (Number(durationSecondsEl?.value) || 0)),
+      },
+      artwork: {
+        coverUrl: fileUrl,
+      },
     };
 
-    applyPosterValues(values);
+    renderPoster(posterData);
     showPoster();
   });
 })();
