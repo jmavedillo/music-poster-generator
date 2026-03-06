@@ -1,0 +1,490 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/assets/cover.svg b/assets/cover.svg
+new file mode 100644
+index 0000000000000000000000000000000000000000..a2b99729062ccb89e276cdac0fc424fca673d0c9
+--- /dev/null
++++ b/assets/cover.svg
+@@ -0,0 +1,16 @@
++<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
++  <title id="title">Album Cover Placeholder</title>
++  <desc id="desc">Square placeholder album cover with border and center text.</desc>
++  <defs>
++    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0%" stop-color="#2a2f3a"/>
++      <stop offset="100%" stop-color="#171b22"/>
++    </linearGradient>
++  </defs>
++  <rect x="0" y="0" width="1200" height="1200" fill="url(#bg)"/>
++  <rect x="70" y="70" width="1060" height="1060" rx="12" fill="none" stroke="#ffffff" stroke-width="18"/>
++  <rect x="165" y="470" width="870" height="260" rx="18" fill="rgba(255,255,255,0.08)" stroke="#ffffff" stroke-width="4"/>
++  <text x="600" y="590" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-size="112" font-weight="700" font-family="Arial, Helvetica, sans-serif" letter-spacing="4">
++    ALBUM COVER
++  </text>
++</svg>
+diff --git a/index.html b/index.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..d85db317ef816e99c886435c41049e2f5e95384a
+--- /dev/null
++++ b/index.html
+@@ -0,0 +1,70 @@
++<!DOCTYPE html>
++<html lang="en">
++  <head>
++    <meta charset="UTF-8" />
++    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
++    <title>Music Player Style Poster</title>
++    <link rel="stylesheet" href="style.css" />
++  </head>
++  <body>
++    <main class="poster" aria-label="Music player poster mockup">
++      <div class="background-layer" id="background-layer" aria-hidden="true"></div>
++
++      <section class="content">
++        <figure class="album-cover-wrap">
++          <img id="cover-image" src="assets/cover.jpg" alt="Album cover placeholder" class="album-cover" />
++        </figure>
++
++        <section class="player-overlay" aria-label="Player overlay">
++          <div class="wave-row" aria-hidden="true">
++            <div class="wave-bars">
++              <span style="--h: 16px"></span>
++              <span style="--h: 26px"></span>
++              <span style="--h: 12px"></span>
++              <span style="--h: 34px"></span>
++              <span style="--h: 20px"></span>
++              <span style="--h: 40px"></span>
++              <span style="--h: 14px"></span>
++              <span style="--h: 46px"></span>
++              <span style="--h: 22px"></span>
++              <span style="--h: 32px"></span>
++              <span style="--h: 12px"></span>
++              <span style="--h: 38px"></span>
++              <span style="--h: 18px"></span>
++              <span style="--h: 44px"></span>
++              <span style="--h: 16px"></span>
++            </div>
++          </div>
++
++          <div class="title-row">
++            <h1 id="track-title">Viajo Sin Ver (Remix) [feat De La...]</h1>
++            <button class="heart" aria-label="Liked song">♥</button>
++          </div>
++
++          <p class="artist-row">
++            <span class="explicit">E</span>
++            <span id="track-artists" class="artist-text">Jon Z, De La Ghetto, Almighty, Miky...</span>
++          </p>
++
++          <div class="progress-wrap" aria-hidden="true">
++            <div class="progress-bar"><span class="knob"></span></div>
++            <div class="time-row">
++              <span id="time-current">7:52</span>
++              <span id="time-total">9:29</span>
++            </div>
++          </div>
++
++          <div class="controls" aria-label="Playback controls">
++            <button class="icon shuffle" aria-label="Shuffle"></button>
++            <button class="icon previous" aria-label="Previous"></button>
++            <button class="icon play" aria-label="Play"></button>
++            <button class="icon next" aria-label="Next"></button>
++            <button class="icon repeat" aria-label="Repeat"></button>
++          </div>
++        </section>
++      </section>
++    </main>
++
++    <script src="poster.js"></script>
++  </body>
++</html>
+diff --git a/poster.js b/poster.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..b2cff2c112f9f499034871ae6a306a1fcabefd24
+--- /dev/null
++++ b/poster.js
+@@ -0,0 +1,51 @@
++// Phase 2: dynamic poster values from URL query params (no backend/API)
++(function () {
++  const defaults = {
++    title: "Viajo Sin Ver (Remix) [feat De La...]",
++    artists: "Jon Z, De La Ghetto, Almighty, Miky...",
++    tcur: "7:52",
++    ttot: "9:29",
++    cover: "assets/cover.jpg",
++  };
++
++  const params = new URLSearchParams(window.location.search);
++
++  const getParam = (key) => {
++    const value = params.get(key);
++    return value && value.trim() ? value.trim() : defaults[key];
++  };
++
++  const isValidTime = (value) => /^\d{1,2}:\d{2}$/.test(value);
++
++  const values = {
++    title: getParam("title"),
++    artists: getParam("artists"),
++    tcur: getParam("tcur"),
++    ttot: getParam("ttot"),
++    cover: getParam("cover"),
++  };
++
++  if (!isValidTime(values.tcur)) values.tcur = defaults.tcur;
++  if (!isValidTime(values.ttot)) values.ttot = defaults.ttot;
++
++  const titleEl = document.getElementById("track-title");
++  const artistsEl = document.getElementById("track-artists");
++  const currentTimeEl = document.getElementById("time-current");
++  const totalTimeEl = document.getElementById("time-total");
++  const coverImageEl = document.getElementById("cover-image");
++  const backgroundLayerEl = document.getElementById("background-layer");
++
++  if (titleEl) titleEl.textContent = values.title;
++  if (artistsEl) artistsEl.textContent = values.artists;
++  if (currentTimeEl) currentTimeEl.textContent = values.tcur;
++  if (totalTimeEl) totalTimeEl.textContent = values.ttot;
++
++  if (coverImageEl) {
++    coverImageEl.setAttribute("src", values.cover);
++  }
++
++  if (backgroundLayerEl) {
++    backgroundLayerEl.style.setProperty("--cover-image", `url("${values.cover}")`);
++    backgroundLayerEl.style.backgroundImage = `url("${values.cover}")`;
++  }
++})();
+diff --git a/style.css b/style.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..49cd96e44d3eb992efbb67a680b97c8816c4d253
+--- /dev/null
++++ b/style.css
+@@ -0,0 +1,325 @@
++/* ==============================
++   Base / Layout
++================================ */
++* {
++  box-sizing: border-box;
++}
++
++html,
++body {
++  margin: 0;
++  min-height: 100%;
++}
++
++body {
++  display: grid;
++  place-items: center;
++  padding: 12px;
++  font-family: Arial, Helvetica, sans-serif;
++  background: #050505;
++  color: #fff;
++}
++
++.poster {
++  position: relative;
++  width: 400px;
++  height: 600px;
++  overflow: hidden;
++  border-radius: 20px;
++  isolation: isolate;
++}
++
++/* ==============================
++   Background blur + overlay
++================================ */
++.background-layer {
++  position: absolute;
++  inset: -4%;
++  background-image: var(--cover-image, url("assets/cover.jpg"));
++  background-size: cover;
++  background-position: center;
++  filter: blur(10px) saturate(0.95);
++  transform: scale(1.08);
++  z-index: -3;
++}
++
++.poster::before {
++  content: "";
++  position: absolute;
++  inset: 0;
++  background: linear-gradient(
++    to bottom,
++    rgba(0, 0, 0, 0.42) 8%,
++    rgba(0, 0, 0, 0.58) 45%,
++    rgba(0, 0, 0, 0.9) 100%
++  );
++  z-index: -2;
++}
++
++.poster::after {
++  content: "";
++  position: absolute;
++  inset: 0;
++  background: radial-gradient(circle at 50% 18%, transparent 0 32%, rgba(0, 0, 0, 0.5) 72%);
++  z-index: -1;
++}
++
++.content {
++  height: 100%;
++  display: grid;
++  grid-template-rows: auto 1fr;
++  justify-items: center;
++  align-items: start;
++  row-gap: 6px;
++  padding: 12px 14px 14px;
++}
++
++/* ==============================
++   Album cover
++================================ */
++.album-cover-wrap {
++  width: 348px;
++  margin: 0;
++  justify-self: center;
++}
++
++.album-cover {
++  width: 100%;
++  display: block;
++  aspect-ratio: 1 / 1;
++  object-fit: cover;
++  border: 0;
++  border-radius: 4px;
++  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
++}
++
++/* ==============================
++   Player overlay
++================================ */
++.player-overlay {
++  width: 348px;
++  align-self: stretch;
++  display: grid;
++  grid-template-rows: auto auto auto auto 1fr;
++}
++
++.wave-row {
++  display: flex;
++  justify-content: center;
++  margin-bottom: 2px;
++}
++
++.wave-bars {
++  display: flex;
++  align-items: center;
++  gap: 5px;
++  height: 30px;
++}
++
++.wave-bars span {
++  width: 5px;
++  height: var(--h);
++  max-height: 28px;
++  background: #fff;
++  border-radius: 999px;
++  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
++}
++
++.title-row {
++  display: grid;
++  grid-template-columns: minmax(0, 1fr) auto;
++  align-items: end;
++  gap: 0.35rem;
++  margin-top: 49px;
++}
++
++h1 {
++  margin: 0;
++  min-width: 0;
++  font-size: 1.72rem;
++  font-weight: 800;
++  line-height: 1.1;
++  letter-spacing: -0.02em;
++  white-space: nowrap;
++  overflow: hidden;
++  text-overflow: ellipsis;
++}
++
++.heart {
++  border: 0;
++  background: transparent;
++  color: #fff;
++  width: 26px;
++  height: 26px;
++  display: inline-grid;
++  place-items: center;
++  font-size: 1.55rem;
++  line-height: 1;
++  padding: 0;
++  cursor: default;
++}
++
++.artist-row {
++  margin: 0.18rem 0 0.2rem;
++  display: grid;
++  grid-template-columns: auto minmax(0, 1fr);
++  align-items: center;
++  gap: 0.35rem;
++  font-size: 0.82rem;
++  font-weight: 700;
++  color: #f3f3f3;
++}
++
++.artist-text {
++  min-width: 0;
++  white-space: nowrap;
++  overflow: hidden;
++  text-overflow: ellipsis;
++}
++
++.explicit {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  width: 1.5em;
++  height: 1.25em;
++  background: rgba(255, 255, 255, 0.9);
++  color: #0f0f0f;
++  font-size: 0.62em;
++  border-radius: 6px;
++  font-weight: 900;
++}
++
++.progress-wrap {
++  margin-bottom: 2px;
++}
++
++.progress-bar {
++  width: 100%;
++  height: 8px;
++  border-radius: 999px;
++  background: rgba(255, 255, 255, 0.96);
++  position: relative;
++}
++
++.knob {
++  position: absolute;
++  right: 18%;
++  top: 50%;
++  width: 20px;
++  height: 20px;
++  border-radius: 50%;
++  transform: translate(50%, -50%);
++  background: #fff;
++  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
++}
++
++.time-row {
++  margin-top: 0.35rem;
++  display: flex;
++  justify-content: space-between;
++  font-size: 0.72rem;
++  font-weight: 700;
++}
++
++/* ==============================
++   Bottom controls
++================================ */
++.controls {
++  align-self: end;
++  display: grid;
++  grid-template-columns: 1fr 1fr auto 1fr 1fr;
++  align-items: center;
++  column-gap: 2px;
++}
++
++.icon {
++  position: relative;
++  border: 0;
++  background: transparent;
++  color: #fff;
++  min-height: 38px;
++  cursor: default;
++}
++
++.play {
++  width: 72px;
++  height: 72px;
++  border-radius: 50%;
++  background: #fff;
++  justify-self: center;
++}
++
++.play::before {
++  content: "";
++  position: absolute;
++  left: 39%;
++  top: 31%;
++  width: 0;
++  height: 0;
++  border-top: 12px solid transparent;
++  border-bottom: 12px solid transparent;
++  border-left: 19px solid #111;
++}
++
++.previous,
++.next {
++  width: 54px;
++  justify-self: center;
++}
++
++.previous::before,
++.next::before {
++  content: "";
++  position: absolute;
++  top: 50%;
++  transform: translateY(-50%);
++  width: 0;
++  height: 0;
++  border-top: 13px solid transparent;
++  border-bottom: 13px solid transparent;
++}
++
++.previous::before {
++  border-right: 22px solid #fff;
++  left: 17px;
++}
++
++.previous::after {
++  content: "";
++  position: absolute;
++  left: 11px;
++  top: 50%;
++  width: 4px;
++  height: 26px;
++  background: #fff;
++  transform: translateY(-50%);
++}
++
++.next::before {
++  border-left: 22px solid #fff;
++  right: 17px;
++}
++
++.next::after {
++  content: "";
++  position: absolute;
++  right: 11px;
++  top: 50%;
++  width: 4px;
++  height: 26px;
++  background: #fff;
++  transform: translateY(-50%);
++}
++
++.shuffle::before {
++  content: "⇄";
++  font-size: 1.75rem;
++  line-height: 1;
++}
++
++.repeat::before {
++  content: "↺";
++  font-size: 1.75rem;
++  line-height: 1;
++}
+ 
+EOF
+)

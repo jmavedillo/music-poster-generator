@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Music Player Style Poster</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app" aria-label="Music poster generator">
+      <section class="setup-panel" id="setup-panel" aria-label="Poster setup form">
+        <h1 class="setup-title">Create your poster</h1>
+        <form id="poster-form" class="setup-form">
+          <label>
+            Artist name
+            <input type="text" id="artist-input" name="artists" required placeholder="Bad Bunny" />
+          </label>
+
+          <label>
+            Song name
+            <input type="text" id="title-input" name="title" required placeholder="Moscow Mule" />
+          </label>
+
+          <label>
+            Cover image
+            <input type="file" id="cover-input" name="cover" accept="image/*" required />
+          </label>
+
+          <fieldset class="duration-group">
+            <legend>Song duration</legend>
+            <div class="duration-fields">
+              <label>
+                Minutes
+                <select id="duration-minutes" name="duration-minutes"></select>
+              </label>
+              <label>
+                Seconds
+                <select id="duration-seconds" name="duration-seconds"></select>
+              </label>
+            </div>
+          </fieldset>
+
+          <button type="submit">Generate poster</button>
+        </form>
+      </section>
+
+      <section class="poster hidden" id="poster" aria-label="Music player poster mockup">
+        <div class="background-layer" id="background-layer" aria-hidden="true"></div>
+
+        <section class="content">
+          <figure class="album-cover-wrap">
+            <img id="cover-image" src="assets/cover.svg" alt="Album cover" class="album-cover" />
+          </figure>
+
+          <section class="player-overlay" aria-label="Player overlay">
+            <div class="wave-row" aria-hidden="true">
+              <div class="wave-bars">
+                <span style="--h: 16px"></span>
+                <span style="--h: 26px"></span>
+                <span style="--h: 12px"></span>
+                <span style="--h: 34px"></span>
+                <span style="--h: 20px"></span>
+                <span style="--h: 40px"></span>
+                <span style="--h: 14px"></span>
+                <span style="--h: 46px"></span>
+                <span style="--h: 22px"></span>
+                <span style="--h: 32px"></span>
+                <span style="--h: 12px"></span>
+                <span style="--h: 38px"></span>
+                <span style="--h: 18px"></span>
+                <span style="--h: 44px"></span>
+                <span style="--h: 16px"></span>
+              </div>
+            </div>
+
+            <div class="title-row">
+              <h2 id="track-title">Viajo Sin Ver (Remix) [feat De La...]</h2>
+              <button class="heart" aria-label="Liked song">♥</button>
+            </div>
+
+            <p class="artist-row">
+              <span class="explicit">E</span>
+              <span id="track-artists" class="artist-text">Jon Z, De La Ghetto, Almighty, Miky...</span>
+            </p>
+
+            <div class="progress-wrap" aria-hidden="true">
+              <div class="progress-bar"><span class="knob"></span></div>
+              <div class="time-row">
+                <span id="time-current">7:52</span>
+                <span id="time-total">9:29</span>
+              </div>
+            </div>
+
+            <div class="controls" aria-label="Playback controls">
+              <button class="icon shuffle" aria-label="Shuffle"></button>
+              <button class="icon previous" aria-label="Previous"></button>
+              <button class="icon play" aria-label="Play"></button>
+              <button class="icon next" aria-label="Next"></button>
+              <button class="icon repeat" aria-label="Repeat"></button>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script src="poster.js"></script>
+  </body>
+</html>
