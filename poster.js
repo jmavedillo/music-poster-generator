@@ -6,14 +6,20 @@
     cover: "assets/cover.svg",
   };
 
+  const tracksDb = typeof MOCK_TRACKS !== "undefined" && Array.isArray(MOCK_TRACKS) ? MOCK_TRACKS : [];
   const params = new URLSearchParams(window.location.search);
 
-  const getParam = (key) => {
-    const value = params.get(key);
-    return value && value.trim() ? value.trim() : defaults[key];
+  const COVER_ASSET_MAP = {
+    "cover1.png": "assets/cover.svg",
+    "cover2.png": "assets/cover.svg",
   };
 
-  const isValidTime = (value) => /^\d{1,2}:\d{2}$/.test(value);
+  const normalizeText = (value) =>
+    String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
 
   const clampNumber = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -25,25 +31,12 @@
   };
 
   const parseTime = (value) => {
-    if (!isValidTime(value)) return null;
+    if (!/^\d{1,2}:\d{2}$/.test(value)) return null;
 
     const [minutes, seconds] = value.split(":").map(Number);
     if (seconds > 59) return null;
 
     return minutes * 60 + seconds;
-  };
-
-  const buildDurationOptions = (selectEl, maxValue) => {
-    if (!selectEl) return;
-
-    selectEl.innerHTML = "";
-
-    for (let i = 0; i <= maxValue; i += 1) {
-      const option = document.createElement("option");
-      option.value = String(i);
-      option.textContent = String(i).padStart(2, "0");
-      selectEl.append(option);
-    }
   };
 
   const getElapsedTime = (totalTime) => {
@@ -53,14 +46,36 @@
     return formatTime(Math.round(parsedTotal * 0.8));
   };
 
+  const getTrackArtists = (track) => (track?.artists || []).map((artist) => artist.name).join(", ");
+
+  const resolveCoverUrl = (coverUrl) => {
+    if (!coverUrl) return defaults.cover;
+    if (coverUrl.startsWith("http") || coverUrl.startsWith("assets/")) return coverUrl;
+    return COVER_ASSET_MAP[coverUrl] || defaults.cover;
+  };
+
+  const toPosterData = (track) => ({
+    track: {
+      title: track?.title || defaults.title,
+      artists: getTrackArtists(track) || defaults.artists,
+      totalTime: formatTime(track?.durationSeconds),
+    },
+    artwork: {
+      coverUrl: resolveCoverUrl(track?.coverUrl),
+    },
+  });
+
+  const getParam = (key) => {
+    const value = params.get(key);
+    return value && value.trim() ? value.trim() : defaults[key];
+  };
+
   const setupPanelEl = document.getElementById("setup-panel");
   const posterEl = document.getElementById("poster");
   const formEl = document.getElementById("poster-form");
-  const titleInputEl = document.getElementById("title-input");
-  const artistInputEl = document.getElementById("artist-input");
-  const coverInputEl = document.getElementById("cover-input");
-  const durationMinutesEl = document.getElementById("duration-minutes");
-  const durationSecondsEl = document.getElementById("duration-seconds");
+  const artistSearchInputEl = document.getElementById("artist-search-input");
+  const songSearchInputEl = document.getElementById("song-search-input");
+  const tracksSuggestionsEl = document.getElementById("tracks-suggestions");
 
   const titleEl = document.getElementById("track-title");
   const artistsEl = document.getElementById("track-artists");
@@ -70,7 +85,7 @@
   const backgroundLayerEl = document.getElementById("background-layer");
 
   const normalizePosterData = (posterData) => {
-    const totalTime = isValidTime(posterData?.track?.totalTime) ? posterData.track.totalTime : defaults.ttot;
+    const totalTime = /^\d{1,2}:\d{2}$/.test(posterData?.track?.totalTime) ? posterData.track.totalTime : defaults.ttot;
 
     return {
       track: {
@@ -108,6 +123,49 @@
     posterEl?.classList.remove("hidden");
   };
 
+  const filterTracks = () => {
+    const artistTerm = normalizeText(artistSearchInputEl?.value);
+    const songTerm = normalizeText(songSearchInputEl?.value);
+
+    return tracksDb.filter((track) => {
+      const artists = normalizeText(getTrackArtists(track));
+      const title = normalizeText(track.title);
+      const artistMatches = artistTerm.length < 2 || artists.includes(artistTerm);
+      const songMatches = songTerm.length < 2 || title.includes(songTerm);
+      return artistMatches && songMatches;
+    });
+  };
+
+  const refreshSuggestions = () => {
+    if (!tracksSuggestionsEl) return;
+
+    const matches = filterTracks().slice(0, 8);
+    tracksSuggestionsEl.innerHTML = "";
+
+    matches.forEach((track) => {
+      const option = document.createElement("option");
+      option.value = `${track.title} — ${getTrackArtists(track)}`;
+      tracksSuggestionsEl.append(option);
+    });
+  };
+
+  const findTrackFromInputs = () => {
+    const artistTerm = normalizeText(artistSearchInputEl?.value);
+    const songTerm = normalizeText(songSearchInputEl?.value);
+    const songRaw = normalizeText((songSearchInputEl?.value || "").split("—")[0]);
+
+    return (
+      tracksDb.find((track) => {
+        const title = normalizeText(track.title);
+        const artists = normalizeText(getTrackArtists(track));
+
+        const artistMatches = !artistTerm || artists.includes(artistTerm);
+        const songMatches = !songTerm || title.includes(songTerm) || title === songRaw;
+        return artistMatches && songMatches;
+      }) || null
+    );
+  };
+
   const initialPosterData = {
     track: {
       title: getParam("title"),
@@ -124,45 +182,25 @@
     return Boolean(value && value.trim());
   });
 
-  if (titleInputEl) titleInputEl.value = initialPosterData.track.title;
-  if (artistInputEl) artistInputEl.value = initialPosterData.track.artists;
-
-  buildDurationOptions(durationMinutesEl, 59);
-  buildDurationOptions(durationSecondsEl, 59);
-
-  const initialTotalSeconds = parseTime(initialPosterData.track.totalTime) ?? parseTime(defaults.ttot);
-  if (initialTotalSeconds !== null) {
-    if (durationMinutesEl) durationMinutesEl.value = String(Math.floor(initialTotalSeconds / 60));
-    if (durationSecondsEl) durationSecondsEl.value = String(initialTotalSeconds % 60);
-  }
-
+  refreshSuggestions();
   renderPoster(initialPosterData);
 
   if (hasQueryPosterData) {
     showPoster();
   }
 
+  artistSearchInputEl?.addEventListener("input", refreshSuggestions);
+  songSearchInputEl?.addEventListener("input", refreshSuggestions);
+
   if (!formEl) return;
 
   formEl.addEventListener("submit", (event) => {
     event.preventDefault();
 
-    const file = coverInputEl?.files?.[0];
-    if (!file) return;
+    const selectedTrack = findTrackFromInputs();
+    if (!selectedTrack) return;
 
-    const fileUrl = URL.createObjectURL(file);
-    const posterData = {
-      track: {
-        title: titleInputEl?.value || "",
-        artists: artistInputEl?.value || "",
-        totalTime: formatTime((Number(durationMinutesEl?.value) || 0) * 60 + (Number(durationSecondsEl?.value) || 0)),
-      },
-      artwork: {
-        coverUrl: fileUrl,
-      },
-    };
-
-    renderPoster(posterData);
+    renderPoster(toPosterData(selectedTrack));
     showPoster();
   });
 })();
