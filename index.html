@@ -26,6 +26,20 @@
             <input type="file" id="cover-input" name="cover" accept="image/*" required />
           </label>
 
+          <fieldset class="duration-group">
+            <legend>Song duration</legend>
+            <div class="duration-fields">
+              <label>
+                Minutes
+                <select id="duration-minutes" name="duration-minutes"></select>
+              </label>
+              <label>
+                Seconds
+                <select id="duration-seconds" name="duration-seconds"></select>
+              </label>
+            </div>
+          </fieldset>
+
           <button type="submit">Generate poster</button>
         </form>
       </section>

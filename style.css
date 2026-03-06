@@ -53,18 +53,39 @@ body {
 }
 
 .setup-form input,
+.setup-form select,
 .setup-form button {
   font: inherit;
 }
 
 .setup-form input[type="text"],
-.setup-form input[type="file"] {
+.setup-form input[type="file"],
+.setup-form select {
   width: 100%;
   background: #1f1f1f;
   color: #fff;
   border: 1px solid #393939;
   border-radius: 8px;
   padding: 10px;
+}
+
+.duration-group {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #393939;
+  border-radius: 8px;
+}
+
+.duration-group legend {
+  padding: 0 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.duration-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .setup-form button {
