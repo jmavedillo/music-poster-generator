@@ -12,33 +12,30 @@
         <h1 class="setup-title">Create your poster</h1>
         <form id="poster-form" class="setup-form">
           <label>
-            Artist name
-            <input type="text" id="artist-input" name="artists" required placeholder="Bad Bunny" />
+            Buscar por artista
+            <input
+              type="search"
+              id="artist-search-input"
+              name="artist-search"
+              placeholder="Ej: Bad Bunny"
+              autocomplete="off"
+            />
           </label>
 
           <label>
-            Song name
-            <input type="text" id="title-input" name="title" required placeholder="Moscow Mule" />
+            Buscar por canción
+            <input
+              type="search"
+              id="song-search-input"
+              name="song-search"
+              required
+              placeholder="Ej: Moscow Mule"
+              list="tracks-suggestions"
+              autocomplete="off"
+            />
           </label>
 
-          <label>
-            Cover image
-            <input type="file" id="cover-input" name="cover" accept="image/*" required />
-          </label>
-
-          <fieldset class="duration-group">
-            <legend>Song duration</legend>
-            <div class="duration-fields">
-              <label>
-                Minutes
-                <select id="duration-minutes" name="duration-minutes"></select>
-              </label>
-              <label>
-                Seconds
-                <select id="duration-seconds" name="duration-seconds"></select>
-              </label>
-            </div>
-          </fieldset>
+          <datalist id="tracks-suggestions"></datalist>
 
           <button type="submit">Generate poster</button>
         </form>
@@ -103,6 +100,7 @@
       </section>
     </main>
 
+    <script src="mock-tracks.js"></script>
     <script src="poster.js"></script>
   </body>
 </html>
