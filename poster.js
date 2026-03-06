@@ -3,16 +3,11 @@
     title: "Viajo Sin Ver (Remix) [feat De La...]",
     artists: "Jon Z, De La Ghetto, Almighty, Miky...",
     ttot: "9:29",
-    cover: "assets/cover.svg",
+    cover: "cover1.png",
   };
 
   const tracksDb = typeof MOCK_TRACKS !== "undefined" && Array.isArray(MOCK_TRACKS) ? MOCK_TRACKS : [];
   const params = new URLSearchParams(window.location.search);
-
-  const COVER_ASSET_MAP = {
-    "cover1.png": "assets/cover.svg",
-    "cover2.png": "assets/cover.svg",
-  };
 
   const normalizeText = (value) =>
     String(value || "")
@@ -50,8 +45,7 @@
 
   const resolveCoverUrl = (coverUrl) => {
     if (!coverUrl) return defaults.cover;
-    if (coverUrl.startsWith("http") || coverUrl.startsWith("assets/")) return coverUrl;
-    return COVER_ASSET_MAP[coverUrl] || defaults.cover;
+    return coverUrl;
   };
 
   const toPosterData = (track) => ({
@@ -75,6 +69,7 @@
   const formEl = document.getElementById("poster-form");
   const artistSearchInputEl = document.getElementById("artist-search-input");
   const songSearchInputEl = document.getElementById("song-search-input");
+  const artistsSuggestionsEl = document.getElementById("artists-suggestions");
   const tracksSuggestionsEl = document.getElementById("tracks-suggestions");
 
   const titleEl = document.getElementById("track-title");
@@ -123,23 +118,72 @@
     posterEl?.classList.remove("hidden");
   };
 
-  const filterTracks = () => {
-    const artistTerm = normalizeText(artistSearchInputEl?.value);
-    const songTerm = normalizeText(songSearchInputEl?.value);
+  const getAllArtists = () => {
+    const artistsMap = new Map();
 
-    return tracksDb.filter((track) => {
-      const artists = normalizeText(getTrackArtists(track));
-      const title = normalizeText(track.title);
-      const artistMatches = artistTerm.length < 2 || artists.includes(artistTerm);
-      const songMatches = songTerm.length < 2 || title.includes(songTerm);
-      return artistMatches && songMatches;
+    tracksDb.forEach((track) => {
+      (track.artists || []).forEach((artist) => {
+        if (!artistsMap.has(artist.name)) {
+          artistsMap.set(artist.name, artist);
+        }
+      });
+    });
+
+    return Array.from(artistsMap.values());
+  };
+
+  const findArtistFromInput = () => {
+    const artistTerm = normalizeText(artistSearchInputEl?.value);
+    if (artistTerm.length < 3) return null;
+
+    const allArtists = getAllArtists();
+    const exactMatch = allArtists.find((artist) => normalizeText(artist.name) === artistTerm);
+    if (exactMatch) return exactMatch;
+
+    return allArtists.find((artist) => normalizeText(artist.name).includes(artistTerm)) || null;
+  };
+
+  const getTracksBySelectedArtist = () => {
+    const selectedArtist = findArtistFromInput();
+    if (!selectedArtist) return tracksDb;
+
+    return tracksDb.filter((track) =>
+      (track.artists || []).some((artist) => normalizeText(artist.name) === normalizeText(selectedArtist.name))
+    );
+  };
+
+  const refreshArtistSuggestions = () => {
+    if (!artistsSuggestionsEl) return;
+
+    const artistTerm = normalizeText(artistSearchInputEl?.value);
+    artistsSuggestionsEl.innerHTML = "";
+
+    if (artistTerm.length < 3) return;
+
+    const allArtists = getAllArtists();
+    const matches = allArtists
+      .filter((artist) => normalizeText(artist.name).includes(artistTerm))
+      .slice(0, 8);
+
+    matches.forEach((artist) => {
+      const option = document.createElement("option");
+      option.value = artist.name;
+      artistsSuggestionsEl.append(option);
     });
   };
 
-  const refreshSuggestions = () => {
+  const refreshTrackSuggestions = () => {
     if (!tracksSuggestionsEl) return;
 
-    const matches = filterTracks().slice(0, 8);
+    const songTerm = normalizeText(songSearchInputEl?.value);
+    const tracksSource = getTracksBySelectedArtist();
+    const matches = tracksSource
+      .filter((track) => {
+        if (songTerm.length < 2) return true;
+        return normalizeText(track.title).includes(songTerm);
+      })
+      .slice(0, 8);
+
     tracksSuggestionsEl.innerHTML = "";
 
     matches.forEach((track) => {
@@ -153,13 +197,14 @@
     const artistTerm = normalizeText(artistSearchInputEl?.value);
     const songTerm = normalizeText(songSearchInputEl?.value);
     const songRaw = normalizeText((songSearchInputEl?.value || "").split("—")[0]);
+    const tracksSource = getTracksBySelectedArtist();
 
     return (
-      tracksDb.find((track) => {
+      tracksSource.find((track) => {
         const title = normalizeText(track.title);
         const artists = normalizeText(getTrackArtists(track));
 
-        const artistMatches = !artistTerm || artists.includes(artistTerm);
+        const artistMatches = !artistTerm || artistTerm.length < 3 || artists.includes(artistTerm);
         const songMatches = !songTerm || title.includes(songTerm) || title === songRaw;
         return artistMatches && songMatches;
       }) || null
@@ -182,15 +227,19 @@
     return Boolean(value && value.trim());
   });
 
-  refreshSuggestions();
+  refreshArtistSuggestions();
+  refreshTrackSuggestions();
   renderPoster(initialPosterData);
 
   if (hasQueryPosterData) {
     showPoster();
   }
 
-  artistSearchInputEl?.addEventListener("input", refreshSuggestions);
-  songSearchInputEl?.addEventListener("input", refreshSuggestions);
+  artistSearchInputEl?.addEventListener("input", () => {
+    refreshArtistSuggestions();
+    refreshTrackSuggestions();
+  });
+  songSearchInputEl?.addEventListener("input", refreshTrackSuggestions);
 
   if (!formEl) return;
 
