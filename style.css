@@ -133,6 +133,31 @@ body {
   isolation: isolate;
 }
 
+.download-actions {
+  margin-top: 20px;
+  display: grid;
+  justify-content: center;
+  gap: 8px;
+}
+
+.download-btn {
+  min-width: 210px;
+  font: inherit;
+  font-size: 0.85rem;
+  background: #fff;
+  color: #0f0f0f;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.download-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 /* ==============================
    Background blur + overlay
 ================================ */
