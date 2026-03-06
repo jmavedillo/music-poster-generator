@@ -18,9 +18,12 @@
               id="artist-search-input"
               name="artist-search"
               placeholder="Ej: Bad Bunny"
+              list="artists-suggestions"
               autocomplete="off"
             />
           </label>
+
+          <datalist id="artists-suggestions"></datalist>
 
           <label>
             Buscar por canción
@@ -46,7 +49,7 @@
 
         <section class="content">
           <figure class="album-cover-wrap">
-            <img id="cover-image" src="assets/cover.svg" alt="Album cover" class="album-cover" />
+            <img id="cover-image" src="cover1.png" alt="Album cover" class="album-cover" />
           </figure>
 
           <section class="player-overlay" aria-label="Player overlay">
