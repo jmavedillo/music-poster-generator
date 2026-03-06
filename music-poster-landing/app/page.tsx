@@ -61,7 +61,7 @@ export default function Home() {
         </header>
 
         <section className="mt-20 rounded-3xl border border-stone-200 bg-white px-8 py-14 md:px-14 md:py-20">
-          <div className="grid items-center gap-12 lg:grid-cols-[1fr_420px]">
+          <div className="grid items-center gap-12 lg:grid-cols-[1fr_360px]">
             <div>
               <p className="text-xs uppercase tracking-[0.28em] text-stone-500">Music Poster Generator</p>
               <h1 className="mt-5 max-w-4xl text-4xl font-semibold leading-tight tracking-tight text-stone-900 md:text-6xl">
@@ -94,7 +94,7 @@ export default function Home() {
                   width={840}
                   height={1080}
                   className="h-auto w-full rounded-xl object-cover"
-                  sizes="420px"
+                  sizes="360px"
                   priority
                 />
               </div>
