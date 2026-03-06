@@ -140,6 +140,10 @@ body {
   gap: 8px;
 }
 
+.download-actions.hidden {
+  display: none;
+}
+
 .download-btn {
   min-width: 210px;
   font: inherit;
