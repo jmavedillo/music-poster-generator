@@ -6,8 +6,10 @@
     cover: "cover1.png",
   };
 
-  const tracksDb = typeof MOCK_TRACKS !== "undefined" && Array.isArray(MOCK_TRACKS) ? MOCK_TRACKS : [];
   const params = new URLSearchParams(window.location.search);
+  const API_BASE_URL = "http://localhost:3000";
+  const MIN_QUERY_LENGTH = 3;
+  const DEBOUNCE_MS = 300;
 
   const normalizeText = (value) =>
     String(value || "")
@@ -82,6 +84,13 @@
   const totalTimeEl = document.getElementById("time-total");
   const coverImageEl = document.getElementById("cover-image");
   const backgroundLayerEl = document.getElementById("background-layer");
+
+  let artistResults = [];
+  let trackResults = [];
+  let selectedArtist = null;
+  let selectedTrack = null;
+  let artistSearchRequestId = 0;
+  let trackSearchRequestId = 0;
 
   const sanitizeFileName = (value) =>
     String(value || "poster")
@@ -175,54 +184,41 @@
     downloadActionsEl?.classList.remove("hidden");
   };
 
-  const getAllArtists = () => {
-    const artistsMap = new Map();
+  const debounce = (callback, waitMs) => {
+    let timeoutId = null;
 
-    tracksDb.forEach((track) => {
-      (track.artists || []).forEach((artist) => {
-        if (!artistsMap.has(artist.name)) {
-          artistsMap.set(artist.name, artist);
-        }
-      });
-    });
-
-    return Array.from(artistsMap.values());
+    return (...args) => {
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        callback(...args);
+      }, waitMs);
+    };
   };
 
-  const findArtistFromInput = () => {
+  const fetchJson = async (url) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status}) for ${url}`);
+    }
+
+    return response.json();
+  };
+
+  const getSongQuery = () => (songSearchInputEl?.value || "").split("—")[0].trim();
+
+  const resolveArtistFromInput = () => {
     const artistTerm = normalizeText(artistSearchInputEl?.value);
-    if (artistTerm.length < 3) return null;
+    if (!artistTerm) return null;
 
-    const allArtists = getAllArtists();
-    const exactMatch = allArtists.find((artist) => normalizeText(artist.name) === artistTerm);
-    if (exactMatch) return exactMatch;
-
-    return allArtists.find((artist) => normalizeText(artist.name).includes(artistTerm)) || null;
-  };
-
-  const getTracksBySelectedArtist = () => {
-    const selectedArtist = findArtistFromInput();
-    if (!selectedArtist) return tracksDb;
-
-    return tracksDb.filter((track) =>
-      (track.artists || []).some((artist) => normalizeText(artist.name) === normalizeText(selectedArtist.name))
-    );
+    return artistResults.find((artist) => normalizeText(artist.name) === artistTerm) || null;
   };
 
   const refreshArtistSuggestions = () => {
     if (!artistsSuggestionsEl) return;
 
-    const artistTerm = normalizeText(artistSearchInputEl?.value);
     artistsSuggestionsEl.innerHTML = "";
 
-    if (artistTerm.length < 3) return;
-
-    const allArtists = getAllArtists();
-    const matches = allArtists
-      .filter((artist) => normalizeText(artist.name).includes(artistTerm))
-      .slice(0, 8);
-
-    matches.forEach((artist) => {
+    artistResults.slice(0, 8).forEach((artist) => {
       const option = document.createElement("option");
       option.value = artist.name;
       artistsSuggestionsEl.append(option);
@@ -232,41 +228,96 @@
   const refreshTrackSuggestions = () => {
     if (!tracksSuggestionsEl) return;
 
-    const songTerm = normalizeText(songSearchInputEl?.value);
-    const tracksSource = getTracksBySelectedArtist();
-    const matches = tracksSource
-      .filter((track) => {
-        if (songTerm.length < 2) return true;
-        return normalizeText(track.title).includes(songTerm);
-      })
-      .slice(0, 8);
-
     tracksSuggestionsEl.innerHTML = "";
 
-    matches.forEach((track) => {
+    trackResults.slice(0, 8).forEach((track) => {
       const option = document.createElement("option");
       option.value = `${track.title} — ${getTrackArtists(track)}`;
       tracksSuggestionsEl.append(option);
     });
   };
 
-  const findTrackFromInputs = () => {
-    const artistTerm = normalizeText(artistSearchInputEl?.value);
+  const findTrackFromSongInput = () => {
     const songTerm = normalizeText(songSearchInputEl?.value);
-    const songRaw = normalizeText((songSearchInputEl?.value || "").split("—")[0]);
-    const tracksSource = getTracksBySelectedArtist();
+    const songRaw = normalizeText(getSongQuery());
 
     return (
-      tracksSource.find((track) => {
+      trackResults.find((track) => {
         const title = normalizeText(track.title);
-        const artists = normalizeText(getTrackArtists(track));
-
-        const artistMatches = !artistTerm || artistTerm.length < 3 || artists.includes(artistTerm);
-        const songMatches = !songTerm || title.includes(songTerm) || title === songRaw;
-        return artistMatches && songMatches;
+        const display = normalizeText(`${track.title} — ${getTrackArtists(track)}`);
+        return title === songRaw || display === songTerm || title === songTerm;
       }) || null
     );
   };
+
+  const clearSelectedTrack = () => {
+    selectedTrack = null;
+    hideTrackPreview();
+  };
+
+  const searchArtists = async (artistQuery) => {
+    if (normalizeText(artistQuery).length < MIN_QUERY_LENGTH) {
+      artistResults = [];
+      refreshArtistSuggestions();
+      return;
+    }
+
+    const requestId = ++artistSearchRequestId;
+
+    try {
+      const url = `${API_BASE_URL}/api/artists?q=${encodeURIComponent(artistQuery)}`;
+      const results = await fetchJson(url);
+      if (requestId !== artistSearchRequestId) return;
+
+      artistResults = Array.isArray(results) ? results : [];
+      selectedArtist = resolveArtistFromInput();
+      refreshArtistSuggestions();
+    } catch (error) {
+      if (requestId !== artistSearchRequestId) return;
+
+      artistResults = [];
+      selectedArtist = null;
+      refreshArtistSuggestions();
+      console.error("Failed to fetch artists", error);
+    }
+  };
+
+  const searchTracks = async (songQuery) => {
+    if (normalizeText(songQuery).length < MIN_QUERY_LENGTH) {
+      trackResults = [];
+      refreshTrackSuggestions();
+      clearSelectedTrack();
+      return;
+    }
+
+    const requestId = ++trackSearchRequestId;
+
+    try {
+      const searchParams = new URLSearchParams({ q: songQuery });
+      if (selectedArtist?.name) {
+        searchParams.set("artistName", selectedArtist.name);
+      }
+
+      const url = `${API_BASE_URL}/api/tracks?${searchParams.toString()}`;
+      const results = await fetchJson(url);
+      if (requestId !== trackSearchRequestId) return;
+
+      trackResults = Array.isArray(results) ? results : [];
+      selectedTrack = findTrackFromSongInput();
+      renderTrackPreview(selectedTrack);
+      refreshTrackSuggestions();
+    } catch (error) {
+      if (requestId !== trackSearchRequestId) return;
+
+      trackResults = [];
+      clearSelectedTrack();
+      refreshTrackSuggestions();
+      console.error("Failed to fetch tracks", error);
+    }
+  };
+
+  const debouncedArtistSearch = debounce(searchArtists, DEBOUNCE_MS);
+  const debouncedTrackSearch = debounce(searchTracks, DEBOUNCE_MS);
 
   const hideTrackPreview = () => {
     trackPreviewEl?.classList.add("hidden");
@@ -286,7 +337,8 @@
   };
 
   const refreshTrackPreview = () => {
-    renderTrackPreview(findTrackFromInputs());
+    selectedTrack = findTrackFromSongInput();
+    renderTrackPreview(selectedTrack);
   };
 
   const initialPosterData = {
@@ -330,12 +382,43 @@
   }
 
   artistSearchInputEl?.addEventListener("input", () => {
-    refreshArtistSuggestions();
-    refreshTrackSuggestions();
-    refreshTrackPreview();
+    const previousArtistName = selectedArtist?.name || "";
+    const nextArtistValue = artistSearchInputEl?.value || "";
+    const artistChanged = normalizeText(previousArtistName) !== normalizeText(nextArtistValue);
+
+    selectedArtist = resolveArtistFromInput();
+    if (artistChanged) {
+      clearSelectedTrack();
+    }
+
+    const artistQuery = artistSearchInputEl?.value || "";
+    if (normalizeText(artistQuery).length < MIN_QUERY_LENGTH) {
+      artistResults = [];
+      selectedArtist = null;
+      refreshArtistSuggestions();
+    } else {
+      debouncedArtistSearch(artistQuery);
+    }
+
+    const songQuery = getSongQuery();
+    if (normalizeText(songQuery).length >= MIN_QUERY_LENGTH) {
+      debouncedTrackSearch(songQuery);
+    } else {
+      trackResults = [];
+      refreshTrackSuggestions();
+    }
   });
+
   songSearchInputEl?.addEventListener("input", () => {
-    refreshTrackSuggestions();
+    const songQuery = getSongQuery();
+    if (normalizeText(songQuery).length < MIN_QUERY_LENGTH) {
+      trackResults = [];
+      refreshTrackSuggestions();
+      clearSelectedTrack();
+      return;
+    }
+
+    debouncedTrackSearch(songQuery);
     refreshTrackPreview();
   });
 
@@ -344,7 +427,7 @@
   formEl.addEventListener("submit", (event) => {
     event.preventDefault();
 
-    const selectedTrack = findTrackFromInputs();
+    selectedTrack = selectedTrack || findTrackFromSongInput();
     if (!selectedTrack) return;
 
     renderPoster(toPosterData(selectedTrack));
