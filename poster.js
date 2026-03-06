@@ -66,6 +66,7 @@
 
   const setupPanelEl = document.getElementById("setup-panel");
   const posterEl = document.getElementById("poster");
+  const downloadActionsEl = document.getElementById("download-actions");
   const formEl = document.getElementById("poster-form");
   const artistSearchInputEl = document.getElementById("artist-search-input");
   const songSearchInputEl = document.getElementById("song-search-input");
@@ -81,6 +82,58 @@
   const totalTimeEl = document.getElementById("time-total");
   const coverImageEl = document.getElementById("cover-image");
   const backgroundLayerEl = document.getElementById("background-layer");
+
+  const sanitizeFileName = (value) =>
+    String(value || "poster")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "poster";
+
+  const exportPosterAsJpg = async (width) => {
+    if (!posterEl || typeof window.html2canvas !== "function") return;
+
+    const requestedWidth = Math.max(1, Math.round(Number(width) || posterEl.offsetWidth || 500));
+    const sourceCanvas = await window.html2canvas(posterEl, {
+      useCORS: true,
+      backgroundColor: "#000000",
+      scale: Math.max(2, window.devicePixelRatio || 1),
+    });
+
+    const sourceAspectRatio = sourceCanvas.height / sourceCanvas.width;
+    const outputCanvas = document.createElement("canvas");
+    outputCanvas.width = requestedWidth;
+    outputCanvas.height = Math.round(requestedWidth * sourceAspectRatio);
+
+    const outputContext = outputCanvas.getContext("2d");
+    if (!outputContext) return;
+
+    outputContext.imageSmoothingEnabled = true;
+    outputContext.imageSmoothingQuality = "high";
+    outputContext.drawImage(sourceCanvas, 0, 0, outputCanvas.width, outputCanvas.height);
+
+    const fileBaseName = sanitizeFileName(titleEl?.textContent || "poster");
+    const fileName = `${fileBaseName}-poster-${requestedWidth}.jpg`;
+
+    outputCanvas.toBlob(
+      (blob) => {
+        if (!blob) return;
+
+        const downloadUrl = URL.createObjectURL(blob);
+        const linkEl = document.createElement("a");
+        linkEl.href = downloadUrl;
+        linkEl.download = fileName;
+        document.body.append(linkEl);
+        linkEl.click();
+        linkEl.remove();
+        URL.revokeObjectURL(downloadUrl);
+      },
+      "image/jpeg",
+      0.92
+    );
+  };
 
   const normalizePosterData = (posterData) => {
     const totalTime = /^\d{1,2}:\d{2}$/.test(posterData?.track?.totalTime) ? posterData.track.totalTime : defaults.ttot;
@@ -119,6 +172,7 @@
   const showPoster = () => {
     setupPanelEl?.classList.add("hidden");
     posterEl?.classList.remove("hidden");
+    downloadActionsEl?.classList.remove("hidden");
   };
 
   const getAllArtists = () => {
@@ -255,6 +309,21 @@
   refreshTrackSuggestions();
   refreshTrackPreview();
   renderPoster(initialPosterData);
+
+  downloadActionsEl?.addEventListener("click", async (event) => {
+    const targetButton = event.target instanceof HTMLElement ? event.target.closest("[data-export-width]") : null;
+    if (!(targetButton instanceof HTMLButtonElement)) return;
+
+    const width = Number(targetButton.dataset.exportWidth);
+    if (!width) return;
+
+    targetButton.disabled = true;
+    try {
+      await exportPosterAsJpg(width);
+    } finally {
+      targetButton.disabled = false;
+    }
+  });
 
   if (hasQueryPosterData) {
     showPoster();
