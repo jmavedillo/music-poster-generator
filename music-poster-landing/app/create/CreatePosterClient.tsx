@@ -37,6 +37,9 @@ const MIN_QUERY_LENGTH = 3;
 const DEBOUNCE_MS = 300;
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001";
 
+const API_UNREACHABLE_MESSAGE =
+  `Cannot reach the poster API at ${API_BASE_URL}. Set NEXT_PUBLIC_API_BASE_URL to your running backend URL.`;
+
 const normalizeText = (value: string) =>
   String(value || "")
     .normalize("NFD")
@@ -85,10 +88,33 @@ const sanitizeFileName = (value: string) =>
 const fetchJson = async <T,>(url: string): Promise<T> => {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Request failed (${response.status}) for ${url}`);
+    let detail = "";
+    try {
+      const body = (await response.json()) as { error?: string };
+      detail = body?.error ? `: ${body.error}` : "";
+    } catch {
+      detail = "";
+    }
+
+    throw new Error(`Request failed (${response.status}) for ${url}${detail}`);
   }
 
   return response.json() as Promise<T>;
+};
+
+const getRequestErrorMessage = (error: unknown, fallback: string) => {
+  const message = error instanceof Error ? error.message : "";
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("failed to fetch") ||
+    normalizedMessage.includes("networkerror") ||
+    normalizedMessage.includes("cors")
+  ) {
+    return API_UNREACHABLE_MESSAGE;
+  }
+
+  return message || fallback;
 };
 
 export function CreatePosterClient() {
@@ -148,11 +174,11 @@ export function CreatePosterClient() {
         );
         setSelectedArtist(matchedArtist || null);
         setSearchError(null);
-      } catch {
+      } catch (error) {
         if (isCancelled) return;
         setArtistResults([]);
         setSelectedArtist(null);
-        setSearchError("Unable to fetch artists right now.");
+        setSearchError(getRequestErrorMessage(error, "Unable to fetch artists right now."));
       }
     }, DEBOUNCE_MS);
 
@@ -200,11 +226,11 @@ export function CreatePosterClient() {
 
         setSelectedTrack(matchedTrack);
         setSearchError(null);
-      } catch {
+      } catch (error) {
         if (isCancelled) return;
         setTrackResults([]);
         setSelectedTrack(null);
-        setSearchError("Unable to fetch tracks right now.");
+        setSearchError(getRequestErrorMessage(error, "Unable to fetch tracks right now."));
       }
     }, DEBOUNCE_MS);
 
@@ -231,8 +257,8 @@ export function CreatePosterClient() {
       setPreviewHtml(payload.html || null);
       setShowPoster(true);
       setSearchError(null);
-    } catch {
-      setSearchError("Unable to render preview right now.");
+    } catch (error) {
+      setSearchError(getRequestErrorMessage(error, "Unable to render preview right now."));
     } finally {
       setIsGenerating(false);
     }
@@ -261,8 +287,8 @@ export function CreatePosterClient() {
       linkEl.click();
       linkEl.remove();
       URL.revokeObjectURL(downloadUrl);
-    } catch {
-      setSearchError("Poster export failed. Please try again.");
+    } catch (error) {
+      setSearchError(getRequestErrorMessage(error, "Poster export failed. Please try again."));
     } finally {
       setIsExporting(null);
     }
