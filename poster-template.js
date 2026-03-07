@@ -76,13 +76,22 @@ function renderWaveBars() {
   return WAVE_BAR_HEIGHTS.map((height) => `<span style="--h:${height}px"></span>`).join('');
 }
 
+function stripLegacySpotifyCodeMarkup(html) {
+  return String(html || '')
+    .replace(/\s*\.spotify-code\s*\{[^}]*\}\s*/g, '\n')
+    .replace(/\s*\.spotify-code\s+span\s*\{[^}]*\}\s*/g, '\n')
+    .replace(/\s*\.poster-theme-inverse\s+\.spotify-code\s*\{[^}]*\}\s*/g, '\n')
+    .replace(/\s*\.poster-theme-inverse\s+\.spotify-code\s+span\s*\{[^}]*\}\s*/g, '\n')
+    .replace(/\s*<div class="spotify-code"[^>]*>[\s\S]*?<\/div>\s*/g, '\n');
+}
+
 function renderPosterHtml(payload) {
   const model = normalizePosterPayload(payload);
   const themeClass = model.theme === 'inverse' ? 'poster-theme-inverse' : '';
   const progressRatio = resolveProgressRatio(model.track.currentTime, model.track.totalTime);
   const progressPercent = Math.max(0, Math.min(100, progressRatio * 100));
 
-  return `<!doctype html>
+  const html = `<!doctype html>
 <html>
 <head>
   <meta charset="utf-8" />
@@ -168,6 +177,8 @@ function renderPosterHtml(payload) {
   </article>
 </body>
 </html>`;
+
+  return stripLegacySpotifyCodeMarkup(html);
 }
 
 module.exports = {
