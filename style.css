@@ -98,6 +98,29 @@ body {
   cursor: pointer;
 }
 
+.theme-selector {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #393939;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.theme-selector legend {
+  padding: 0 6px;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.theme-selector label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 .track-preview {
   display: grid;
   justify-items: center;
@@ -460,4 +483,67 @@ h2 {
   content: "↺";
   font-size: 1.75rem;
   line-height: 1;
+}
+
+.poster.poster-theme-inverse {
+  color: #1f1f1f;
+}
+
+.poster.poster-theme-inverse::before {
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.3) 8%,
+    rgba(255, 255, 255, 0.5) 45%,
+    rgba(255, 255, 255, 0.85) 100%
+  );
+}
+
+.poster.poster-theme-inverse::after {
+  background: radial-gradient(circle at 50% 18%, transparent 0 32%, rgba(255, 255, 255, 0.35) 72%);
+}
+
+.poster.poster-theme-inverse .album-cover-wrap {
+  border-color: #2f2f2f;
+}
+
+.poster.poster-theme-inverse .wave-bars span,
+.poster.poster-theme-inverse .heart,
+.poster.poster-theme-inverse .icon {
+  color: #2f2f2f;
+}
+
+.poster.poster-theme-inverse .previous::after,
+.poster.poster-theme-inverse .next::after {
+  background: #2f2f2f;
+}
+
+.poster.poster-theme-inverse .previous::before {
+  border-right-color: #2f2f2f;
+}
+
+.poster.poster-theme-inverse .next::before {
+  border-left-color: #2f2f2f;
+}
+
+.poster.poster-theme-inverse .wave-bars span {
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.poster.poster-theme-inverse .artist-row {
+  color: #2f2f2f;
+}
+
+.poster.poster-theme-inverse .explicit {
+  background: rgba(40, 40, 40, 0.95);
+  color: #f6f6f6;
+}
+
+.poster.poster-theme-inverse .progress-bar,
+.poster.poster-theme-inverse .knob,
+.poster.poster-theme-inverse .play {
+  background: #2f2f2f;
+}
+
+.poster.poster-theme-inverse .play::before {
+  border-left-color: #f4f4f4;
 }

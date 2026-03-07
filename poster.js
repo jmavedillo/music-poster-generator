@@ -7,7 +7,7 @@
   };
 
   const params = new URLSearchParams(window.location.search);
-  const API_BASE_URL = "http://localhost:3000";
+  const API_BASE_URL = "http://localhost:3001";
   const MIN_QUERY_LENGTH = 3;
   const DEBOUNCE_MS = 300;
 
@@ -77,6 +77,7 @@
   const trackPreviewEl = document.getElementById("track-preview");
   const trackPreviewCoverEl = document.getElementById("track-preview-cover");
   const trackPreviewMetaEl = document.getElementById("track-preview-meta");
+  const themeInputEls = document.querySelectorAll("input[name=\"poster-theme\"]");
 
   const titleEl = document.getElementById("track-title");
   const artistsEl = document.getElementById("track-artists");
@@ -176,6 +177,21 @@
       backgroundLayerEl.style.setProperty("--cover-image", `url("${safePosterData.artwork.coverUrl}")`);
       backgroundLayerEl.style.backgroundImage = `url("${safePosterData.artwork.coverUrl}")`;
     }
+  };
+
+
+  const getSelectedTheme = () => {
+    for (const themeInputEl of themeInputEls) {
+      if (themeInputEl.checked) return themeInputEl.value;
+    }
+
+    return "dark";
+  };
+
+  const applyPosterTheme = (theme) => {
+    if (!posterEl) return;
+
+    posterEl.classList.toggle("poster-theme-inverse", theme === "inverse");
   };
 
   const showPoster = () => {
@@ -360,6 +376,7 @@
   refreshArtistSuggestions();
   refreshTrackSuggestions();
   refreshTrackPreview();
+  applyPosterTheme(getSelectedTheme());
   renderPoster(initialPosterData);
 
   downloadActionsEl?.addEventListener("click", async (event) => {
@@ -430,6 +447,7 @@
     selectedTrack = selectedTrack || findTrackFromSongInput();
     if (!selectedTrack) return;
 
+    applyPosterTheme(getSelectedTheme());
     renderPoster(toPosterData(selectedTrack));
     showPoster();
   });
