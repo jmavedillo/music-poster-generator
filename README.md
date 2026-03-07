@@ -55,10 +55,11 @@ npm run dev
 
 Poster export (`/api/posters/render`) uses **Playwright Chromium**.
 
-If export fails due to missing browser runtime, install it on your server:
+Install Playwright as a runtime dependency and then install Chromium browser binaries:
 
 ```bash
-npx playwright install chromium
+npm install playwright
+npm run playwright:install
 ```
 
 (And on minimal Linux servers you may also need: `npx playwright install-deps chromium`.)
