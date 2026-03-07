@@ -300,13 +300,19 @@ export function CreatePosterClient() {
 
       const exportClone = posterRef.current.cloneNode(true) as HTMLDivElement;
       exportClone.classList.remove("hidden");
-      exportClone.style.position = "fixed";
-      exportClone.style.left = "-10000px";
-      exportClone.style.top = "0";
       exportClone.style.margin = "0";
       exportClone.style.width = `${posterRef.current.offsetWidth || 400}px`;
       exportClone.style.height = `${posterRef.current.offsetHeight || 600}px`;
-      document.body.append(exportClone);
+
+      const exportShell = document.createElement("div");
+      exportShell.className = "legacy-poster-shell";
+      exportShell.style.position = "fixed";
+      exportShell.style.left = "-10000px";
+      exportShell.style.top = "0";
+      exportShell.style.margin = "0";
+      exportShell.style.padding = "0";
+      exportShell.append(exportClone);
+      document.body.append(exportShell);
 
       const cloneImages = Array.from(exportClone.querySelectorAll("img"));
       await Promise.all(
@@ -335,7 +341,7 @@ export function CreatePosterClient() {
         scrollX: 0,
         scrollY: 0,
       });
-      exportClone.remove();
+      exportShell.remove();
 
       const requestedWidth = Math.max(1, Math.round(width));
       const sourceAspectRatio = sourceCanvas.height / sourceCanvas.width;
