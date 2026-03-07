@@ -15,7 +15,7 @@ const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
 app.use(express.json({ limit: '1mb' }));
 
-const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:8000', 'http://localhost:3000'];
+const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:3000'];
 const FRONTEND_ALLOWED_ORIGINS = (process.env.FRONTEND_ORIGINS || process.env.FRONTEND_ORIGIN || '')
   .split(',')
   .map((origin) => origin.trim())
