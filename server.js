@@ -12,13 +12,35 @@ const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
 app.use(express.json());
 
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://localhost:8000';
+const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:8000', 'http://localhost:3000'];
+const FRONTEND_ALLOWED_ORIGINS = (process.env.FRONTEND_ORIGINS || process.env.FRONTEND_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const ALLOWED_ORIGINS = FRONTEND_ALLOWED_ORIGINS.length
+  ? FRONTEND_ALLOWED_ORIGINS
+  : DEFAULT_ALLOWED_ORIGINS;
 
 app.use(cors({
-  origin: FRONTEND_ORIGIN,
+  origin(origin, callback) {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true,
 }));
+
+app.use((error, _req, res, next) => {
+  if (error?.message?.startsWith('CORS blocked')) {
+    return res.status(403).json({ error: error.message });
+  }
+
+  return next(error);
+});
 
 let accessToken = null;
 let tokenExpiresAt = 0;
@@ -153,4 +175,5 @@ app.get('/api/tracks', async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`CORS allowed origins: ${ALLOWED_ORIGINS.join(', ')}`);
 });

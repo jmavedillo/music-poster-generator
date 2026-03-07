@@ -116,7 +116,13 @@ const sanitizeFileName = (value: string) =>
 const fetchJson = async <T,>(url: string): Promise<T> => {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Request failed (${response.status}) for ${url}`);
+    const error = new Error(`Request failed (${response.status}) for ${url}`);
+    console.error("[create] API request failed", {
+      url,
+      status: response.status,
+      statusText: response.statusText,
+    });
+    throw error;
   }
 
   return response.json() as Promise<T>;
@@ -176,8 +182,13 @@ export function CreatePosterClient() {
         );
         setSelectedArtist(matchedArtist || null);
         setSearchError(null);
-      } catch {
+      } catch (error) {
         if (isCancelled) return;
+        console.error("[create] Failed to fetch artists", {
+          artistQuery,
+          apiBaseUrl: API_BASE_URL,
+          error,
+        });
         setArtistResults([]);
         setSelectedArtist(null);
         setSearchError("Unable to fetch artists right now.");
@@ -228,8 +239,15 @@ export function CreatePosterClient() {
 
         setSelectedTrack(matchedTrack);
         setSearchError(null);
-      } catch {
+      } catch (error) {
         if (isCancelled) return;
+        console.error("[create] Failed to fetch tracks", {
+          songQuery,
+          artistQuery,
+          selectedArtist: selectedArtist?.name || null,
+          apiBaseUrl: API_BASE_URL,
+          error,
+        });
         setTrackResults([]);
         setSelectedTrack(null);
         setSearchError("Unable to fetch tracks right now.");
