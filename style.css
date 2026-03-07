@@ -263,6 +263,10 @@ body {
   grid-template-rows: auto auto auto auto 1fr;
 }
 
+.player-overlay > :not(.wave-row):not(.title-row):not(.artist-row):not(.progress-wrap):not(.controls) {
+  display: none !important;
+}
+
 .wave-row {
   display: flex;
   justify-content: center;
