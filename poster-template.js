@@ -100,7 +100,8 @@ function renderPosterHtml(payload) {
     .content { height: 100%; display: grid; grid-template-rows: auto 1fr; justify-items: center; align-items: start; row-gap: 6px; padding: 12px 14px 14px; }
     .album-cover-wrap { width: 348px; height: 348px; margin: 0 0 10px; border: 4px solid #fff; overflow: hidden; }
     .album-cover { width: 100%; height: 100%; display: block; object-fit: cover; background: #fff; box-shadow: 0 6px 16px rgba(0,0,0,.3); }
-    .player-overlay { width: 348px; align-self: stretch; display: grid; grid-template-rows: auto auto auto auto 1fr auto; }
+    .player-overlay { width: 348px; align-self: stretch; display: grid; grid-template-rows: auto auto auto auto 1fr; }
+    .player-overlay > :not(.wave-row):not(.title-row):not(.artist-row):not(.progress-wrap):not(.controls) { display: none !important; }
     .wave-row { display: flex; justify-content: center; }
     .wave-bars { display: flex; align-items: center; gap: 5px; height: 30px; }
     .wave-bars span { width: 5px; height: var(--h); max-height: 28px; background: #fff; border-radius: 999px; box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
@@ -127,8 +128,6 @@ function renderPosterHtml(payload) {
     .next::after { content: ''; position: absolute; right: 11px; top: 50%; width: 4px; height: 26px; background: currentColor; transform: translateY(-50%); }
     .shuffle::before { content: '⇄'; font-size: 1.75rem; line-height: 1; }
     .repeat::before { content: '↺'; font-size: 1.75rem; line-height: 1; }
-    .spotify-code { justify-self: center; margin-top: 8px; width: 248px; height: 30px; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 3px; background: rgba(0,0,0,.45); box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
-    .spotify-code span { display: block; width: var(--w); height: 14px; border-radius: 999px; background: #fff; }
     .poster-theme-inverse { color: #1f1f1f; }
     .poster-theme-inverse::before { background: linear-gradient(to bottom, rgba(255,255,255,.3) 8%, rgba(255,255,255,.5) 45%, rgba(255,255,255,.85) 100%); }
     .poster-theme-inverse::after { background: radial-gradient(circle at 50% 18%, transparent 0 32%, rgba(255,255,255,.35) 72%); }
