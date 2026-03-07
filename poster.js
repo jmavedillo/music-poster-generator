@@ -45,9 +45,26 @@
 
   const getTrackArtists = (track) => (track?.artists || []).map((artist) => artist.name).join(", ");
 
+  const buildCoverProxyUrl = (coverUrl) => `${API_BASE_URL}/api/cover?url=${encodeURIComponent(coverUrl)}`;
+
   const resolveCoverUrl = (coverUrl) => {
     if (!coverUrl) return defaults.cover;
-    return coverUrl;
+
+    const parsedUrl = (() => {
+      try {
+        return new URL(coverUrl, window.location.href);
+      } catch (_error) {
+        return null;
+      }
+    })();
+
+    if (!parsedUrl) return defaults.cover;
+
+    if (parsedUrl.origin === window.location.origin) {
+      return parsedUrl.toString();
+    }
+
+    return buildCoverProxyUrl(parsedUrl.toString());
   };
 
   const toPosterData = (track) => ({
