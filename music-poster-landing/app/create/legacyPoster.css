@@ -52,6 +52,7 @@
 
 .legacy-poster-shell .album-cover-wrap {
   width: 348px;
+  height: 348px;
   margin: 0 0 10px;
   justify-self: center;
   border: 4px solid #fff;
@@ -61,8 +62,8 @@
 
 .legacy-poster-shell .album-cover {
   width: 100%;
+  height: 100%;
   display: block;
-  aspect-ratio: 1 / 1;
   object-fit: cover;
   border: 0;
   border-radius: 0;
@@ -357,4 +358,14 @@
 
 .legacy-poster-shell .poster.poster-theme-inverse .play::before {
   border-left-color: #f4f4f4;
+}
+
+
+/* Export profile: lock geometry for html2canvas output */
+.legacy-poster-shell .poster.poster-render-export .content {
+  padding: 12px 14px 14px;
+}
+
+.legacy-poster-shell .poster.poster-render-export .title-row {
+  margin-top: 32px;
 }

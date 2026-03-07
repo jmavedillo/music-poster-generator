@@ -144,6 +144,7 @@ export function CreatePosterClient() {
   const [isExporting, setIsExporting] = useState<number | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [isCaptureMode, setIsCaptureMode] = useState(false);
 
   const [posterData, setPosterData] = useState<PosterData>({
     track: {
@@ -279,6 +280,24 @@ export function CreatePosterClient() {
       // Migrated from poster.js exportPosterAsJpg: capture poster DOM and resize to target width.
       if (typeof window === "undefined" || typeof window.html2canvas !== "function") return;
 
+      // Force an export-safe render profile before snapshotting.
+      setIsCaptureMode(true);
+      await new Promise((resolve) => window.requestAnimationFrame(() => resolve(undefined)));
+      if (document.fonts?.ready) {
+        await document.fonts.ready;
+      }
+
+      const images = Array.from(posterRef.current.querySelectorAll("img"));
+      await Promise.all(
+        images.map(async (image) => {
+          if (image.complete) return;
+          await new Promise<void>((resolve) => {
+            image.addEventListener("load", () => resolve(), { once: true });
+            image.addEventListener("error", () => resolve(), { once: true });
+          });
+        }),
+      );
+
       const sourceCanvas = await window.html2canvas(posterRef.current, {
         useCORS: true,
         backgroundColor: theme === "inverse" ? "#f8f6f1" : "#000000",
@@ -315,6 +334,7 @@ export function CreatePosterClient() {
         0.92,
       );
     } finally {
+      setIsCaptureMode(false);
       setIsExporting(null);
     }
   };
@@ -442,7 +462,7 @@ export function CreatePosterClient() {
                   <div className="legacy-poster-shell md:justify-self-start">
                     <section
                       ref={posterRef}
-                      className={`poster ${isInverse ? "poster-theme-inverse" : ""}`.trim()}
+                      className={`poster ${isInverse ? "poster-theme-inverse" : ""} ${isCaptureMode ? "poster-render-export" : ""}`.trim()}
                       aria-label="Music player poster mockup"
                     >
                       <div
