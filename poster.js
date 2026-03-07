@@ -123,11 +123,44 @@
     if (!posterEl || typeof window.html2canvas !== "function") return;
 
     const requestedWidth = Math.max(1, Math.round(Number(width) || posterEl.offsetWidth || 500));
-    const sourceCanvas = await window.html2canvas(posterEl, {
+    const exportCloneEl = posterEl.cloneNode(true);
+    exportCloneEl.classList.remove("hidden");
+    exportCloneEl.style.position = "fixed";
+    exportCloneEl.style.left = "-10000px";
+    exportCloneEl.style.top = "0";
+    exportCloneEl.style.margin = "0";
+    exportCloneEl.style.width = `${posterEl.offsetWidth || 400}px`;
+    exportCloneEl.style.height = `${posterEl.offsetHeight || 600}px`;
+    document.body.append(exportCloneEl);
+
+    const cloneImages = Array.from(exportCloneEl.querySelectorAll("img"));
+    await Promise.all(
+      cloneImages.map(
+        (imageEl) =>
+          new Promise((resolve) => {
+            if (imageEl.complete) {
+              resolve();
+              return;
+            }
+
+            imageEl.addEventListener("load", () => resolve(), { once: true });
+            imageEl.addEventListener("error", () => resolve(), { once: true });
+          })
+      )
+    );
+
+    const sourceCanvas = await window.html2canvas(exportCloneEl, {
       useCORS: true,
       backgroundColor: "#000000",
       scale: Math.max(2, window.devicePixelRatio || 1),
+      width: exportCloneEl.offsetWidth,
+      height: exportCloneEl.offsetHeight,
+      windowWidth: exportCloneEl.offsetWidth,
+      windowHeight: exportCloneEl.offsetHeight,
+      scrollX: 0,
+      scrollY: 0,
     });
+    exportCloneEl.remove();
 
     const sourceAspectRatio = sourceCanvas.height / sourceCanvas.width;
     const outputCanvas = document.createElement("canvas");
