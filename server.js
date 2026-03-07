@@ -173,6 +173,44 @@ app.get('/api/tracks', async (req, res) => {
   }
 });
 
+app.get('/api/cover', async (req, res) => {
+  const { url } = req.query;
+
+  if (!url || typeof url !== 'string') {
+    return res.status(400).json({ error: 'Missing required query parameter: url' });
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch (_error) {
+    return res.status(400).json({ error: 'Invalid cover URL' });
+  }
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    return res.status(400).json({ error: 'Only http/https URLs are supported' });
+  }
+
+  try {
+    const response = await fetch(parsedUrl.toString());
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return res.status(response.status).json({ error: errorText || 'Failed to fetch cover image' });
+    }
+
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const arrayBuffer = await response.arrayBuffer();
+    const imageBuffer = Buffer.from(arrayBuffer);
+
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.send(imageBuffer);
+  } catch (error) {
+    return res.status(500).json({ error: error.message || 'Failed to fetch cover image' });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`CORS allowed origins: ${ALLOWED_ORIGINS.join(', ')}`);
