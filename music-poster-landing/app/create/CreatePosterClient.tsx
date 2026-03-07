@@ -40,6 +40,40 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3
 const API_UNREACHABLE_MESSAGE =
   `Cannot reach the poster API at ${API_BASE_URL}. Set NEXT_PUBLIC_API_BASE_URL to your running backend URL.`;
 
+const serializeBody = (body: unknown) => {
+  if (typeof body === "string") return body;
+  if (body == null) return "";
+  try {
+    return JSON.stringify(body);
+  } catch {
+    return String(body);
+  }
+};
+
+const readErrorResponse = async (response: Response) => {
+  let bodyText = "";
+
+  try {
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("application/json")) {
+      bodyText = serializeBody(await response.json());
+    } else {
+      bodyText = await response.text();
+    }
+  } catch {
+    bodyText = "";
+  }
+
+  console.error("Poster API error body", {
+    status: response.status,
+    statusText: response.statusText,
+    body: bodyText,
+  });
+
+  const suffix = bodyText ? `: ${bodyText}` : "";
+  return `Request failed (${response.status} ${response.statusText})${suffix}`;
+};
+
 const normalizeText = (value: string) =>
   String(value || "")
     .normalize("NFD")
@@ -74,7 +108,15 @@ const getElapsedTime = (totalTime: string) => {
 
 const getTrackArtists = (track: Track | null) => (track?.artists || []).map((artist) => artist.name).join(", ");
 
-const resolveCoverUrl = (coverUrl: string | null | undefined) => coverUrl || defaults.cover;
+const resolveCoverUrl = (coverUrl: string | null | undefined) => {
+  const value = coverUrl || defaults.cover;
+  if (/^https?:\/\//i.test(value) || value.startsWith("data:")) return value;
+  if (typeof window !== "undefined") {
+    return new URL(value, window.location.origin).toString();
+  }
+
+  return value;
+};
 
 const sanitizeFileName = (value: string) =>
   String(value || "poster")
@@ -246,13 +288,14 @@ export function CreatePosterClient() {
 
     setIsGenerating(true);
     try {
+      console.log("Poster preview payload", posterPayload);
       const response = await fetch(`${API_BASE_URL}/api/posters/preview`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(posterPayload),
       });
 
-      if (!response.ok) throw new Error("Failed preview rendering");
+      if (!response.ok) throw new Error(await readErrorResponse(response));
       const payload = (await response.json()) as { html?: string };
       setPreviewHtml(payload.html || null);
       setShowPoster(true);
@@ -274,7 +317,7 @@ export function CreatePosterClient() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to export poster");
+        throw new Error(await readErrorResponse(response));
       }
 
       const blob = await response.blob();
