@@ -25,7 +25,7 @@ const ALLOWED_ORIGINS = FRONTEND_ALLOWED_ORIGINS.length
   ? FRONTEND_ALLOWED_ORIGINS
   : DEFAULT_ALLOWED_ORIGINS;
 
-app.use(cors({
+const corsOptions = {
   origin(origin, callback) {
     if (!origin || ALLOWED_ORIGINS.includes(origin)) {
       return callback(null, true);
@@ -34,8 +34,13 @@ app.use(cors({
     return callback(new Error(`CORS blocked for origin: ${origin}`));
   },
   methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('/api/posters/preview', cors(corsOptions));
+app.options('/api/posters/render', cors(corsOptions));
 
 app.use((error, _req, res, next) => {
   if (error?.message?.startsWith('CORS blocked')) {
@@ -131,13 +136,23 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.post('/api/posters/preview', (req, res) => {
-  const payload = normalizePosterPayload(req.body || {});
-  const html = renderPosterHtml(payload);
-  return res.json({
-    template: payload.template,
-    html,
-    model: payload,
-  });
+  try {
+    const payload = normalizePosterPayload(req.body || {});
+    const html = renderPosterHtml(payload);
+    return res.json({
+      template: payload.template,
+      html,
+      model: payload,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: error?.message || 'Failed to render preview',
+      code: 'POSTER_PREVIEW_FAILED',
+      details: {
+        template: req.body?.template || 'spotify-player-v1',
+      },
+    });
+  }
 });
 
 app.post('/api/posters/render', async (req, res) => {
