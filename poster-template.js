@@ -3,7 +3,6 @@ const POSTER_HEIGHT = 600;
 const FALLBACK_COVER_DATA_URI =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%231b1b1b'/%3E%3Cstop offset='100%25' stop-color='%23363636'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='400' height='400' fill='url(%23g)'/%3E%3Ccircle cx='200' cy='200' r='120' fill='rgba(255,255,255,0.08)'/%3E%3C/svg%3E";
 const WAVE_BAR_HEIGHTS = [16, 26, 12, 34, 20, 40, 14, 46, 22, 32, 12, 38, 18, 44, 16];
-const SPOTIFY_CODE_WIDTHS = [6, 3, 8, 5, 10, 4, 7, 5, 11, 6, 8, 4, 9, 5, 10, 3, 7, 6, 9, 4, 11, 5];
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -77,10 +76,6 @@ function renderWaveBars() {
   return WAVE_BAR_HEIGHTS.map((height) => `<span style="--h:${height}px"></span>`).join('');
 }
 
-function renderSpotifyCode() {
-  return SPOTIFY_CODE_WIDTHS.map((width) => `<span style="--w:${width}px"></span>`).join('');
-}
-
 function renderPosterHtml(payload) {
   const model = normalizePosterPayload(payload);
   const themeClass = model.theme === 'inverse' ? 'poster-theme-inverse' : '';
@@ -138,13 +133,11 @@ function renderPosterHtml(payload) {
     .poster-theme-inverse::before { background: linear-gradient(to bottom, rgba(255,255,255,.3) 8%, rgba(255,255,255,.5) 45%, rgba(255,255,255,.85) 100%); }
     .poster-theme-inverse::after { background: radial-gradient(circle at 50% 18%, transparent 0 32%, rgba(255,255,255,.35) 72%); }
     .poster-theme-inverse .album-cover-wrap { border-color: #2f2f2f; }
-    .poster-theme-inverse .wave-bars span { box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+    .poster-theme-inverse .wave-bars span { background: #2f2f2f; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
     .poster-theme-inverse .artist-row { color: #2f2f2f; }
     .poster-theme-inverse .explicit { background: rgba(40,40,40,.95); color: #f6f6f6; }
-    .poster-theme-inverse .progress-bar, .poster-theme-inverse .knob, .poster-theme-inverse .play { background: #2f2f2f; }
+    .poster-theme-inverse .progress-bar, .poster-theme-inverse .progress-fill, .poster-theme-inverse .knob, .poster-theme-inverse .play { background: #2f2f2f; }
     .poster-theme-inverse .play::before { border-left-color: #f4f4f4; }
-    .poster-theme-inverse .spotify-code { background: rgba(255,255,255,.65); box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); }
-    .poster-theme-inverse .spotify-code span { background: #2f2f2f; }
   </style>
 </head>
 <body>
@@ -172,7 +165,6 @@ function renderPosterHtml(payload) {
           <button class="icon next" aria-label="Next"></button>
           <button class="icon repeat" aria-label="Repeat"></button>
         </div>
-        <div class="spotify-code" aria-hidden="true">${renderSpotifyCode()}</div>
       </section>
     </section>
   </article>

@@ -338,6 +338,7 @@
 }
 
 .legacy-poster-shell .poster.poster-theme-inverse .wave-bars span {
+  background: #2f2f2f;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
