@@ -1,6 +1,9 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const { normalizePosterPayload, renderPosterHtml } = require('./poster-template');
+
+let posterRenderer = null;
 
 dotenv.config();
 
@@ -10,7 +13,7 @@ const PORT = process.env.PORT || 3001;
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
-app.use(express.json());
+app.use(express.json({ limit: '1mb' }));
 
 const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:8000', 'http://localhost:3000'];
 const FRONTEND_ALLOWED_ORIGINS = (process.env.FRONTEND_ORIGINS || process.env.FRONTEND_ORIGIN || '')
@@ -41,6 +44,12 @@ app.use((error, _req, res, next) => {
 
   return next(error);
 });
+
+async function getPosterRenderer() {
+  if (posterRenderer) return posterRenderer;
+  posterRenderer = require('./poster-renderer');
+  return posterRenderer;
+}
 
 let accessToken = null;
 let tokenExpiresAt = 0;
@@ -119,6 +128,32 @@ function mapTrack(track) {
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'spotify-api-proxy' });
+});
+
+app.post('/api/posters/preview', (req, res) => {
+  const payload = normalizePosterPayload(req.body || {});
+  const html = renderPosterHtml(payload);
+  return res.json({
+    template: payload.template,
+    html,
+    model: payload,
+  });
+});
+
+app.post('/api/posters/render', async (req, res) => {
+  try {
+    const payload = normalizePosterPayload(req.body || {});
+    const renderer = await getPosterRenderer();
+    const { buffer, format, width, height } = await renderer.renderPosterImage(payload);
+    res.setHeader('Content-Type', format === 'png' ? 'image/png' : 'image/jpeg');
+    res.setHeader('Content-Disposition', `attachment; filename="poster-${width}x${height}.${format === 'png' ? 'png' : 'jpg'}"`);
+    return res.send(buffer);
+  } catch (error) {
+    return res.status(500).json({
+      error: error?.message || 'Failed to render poster',
+      code: 'POSTER_RENDER_FAILED',
+    });
+  }
 });
 
 app.get('/api/artists', async (req, res) => {
