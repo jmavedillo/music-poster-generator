@@ -39,7 +39,8 @@ function buildPoster(payload = {}) {
     throw new PosterPayloadError('Poster payload must be a JSON object');
   }
 
-  const template = resolveTemplate(payload);
+  const requestedTemplateId = resolveTemplateId(payload);
+  const template = resolveTemplate({ template: requestedTemplateId });
   const model = template.normalizePayload(payload);
   const html = template.renderHtml(model);
 
@@ -51,7 +52,7 @@ function buildPoster(payload = {}) {
 
   return {
     template,
-    templateId: template.id,
+    templateId: requestedTemplateId,
     model,
     html,
   };
