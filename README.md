@@ -1,6 +1,6 @@
 # Music Poster Generator Backend
 
-Backend API for a SaaS that generates music posters from Spotify metadata and poster payloads.
+Backend API for generating music posters from Spotify metadata using a multi-template poster system.
 
 ## Project Overview
 
@@ -10,6 +10,7 @@ This service provides:
 - Poster preview generation as raw HTML.
 - Poster image rendering (PNG/JPG) using Playwright + Chromium.
 - Cover image proxying for remote album artwork.
+- A template registry so new poster layouts can be added in isolated modules.
 
 The API is built with Node.js + Express and is designed to be deployed in Docker (Railway-friendly).
 
@@ -22,23 +23,37 @@ The API is built with Node.js + Express and is designed to be deployed in Docker
 - Docker
 - Railway (deployment target)
 
-## Architecture
+## Template Architecture
 
-High-level request flow:
+Poster templates are modular and registry-based:
 
-1. Frontend calls backend REST endpoints.
-2. Backend handles CORS and validates request payload/query params.
-3. For search endpoints, backend fetches Spotify OAuth token (cached in-memory) and queries Spotify Web API.
-4. For preview endpoint, backend renders poster HTML from normalized payload.
-5. For render endpoint, backend uses Playwright Chromium to render poster HTML to an image buffer.
-6. Backend returns JSON responses or image binaries.
+```
+templates/
+  registry.js
+  shared.js
+  spotify-player-v1/
+    index.js
+  minimal-clean-v1/
+    index.js
+```
 
-Core files:
+- `templates/registry.js` exposes available templates and metadata.
+- Each template module exports:
+  - `id`
+  - `displayName`
+  - `description`
+  - `defaultTheme`
+  - `normalizePayload(payload)`
+  - `renderHtml(normalizedPayload)`
+- `poster-service.js` is the shared flow for:
+  - template resolution
+  - payload normalization
+  - HTML generation
+- `poster-renderer.js` only renders HTML to image via Playwright.
 
-- `server.js`: Express server, API routes, Spotify proxy logic, CORS.
-- `poster-template.js`: poster payload normalization + HTML template rendering.
-- `poster-renderer.js`: Playwright-based poster image renderer.
-- `Dockerfile`: production container setup.
+### Shared Preview/Render Path
+
+Both preview and final export use the same exact service path (`buildPoster`), so exported image output stays aligned with the HTML preview.
 
 ## API Endpoints
 
@@ -48,6 +63,26 @@ Base URL (local): `http://localhost:3001`
 
 - `GET /api/health`
 - Returns service status.
+
+### Template Discovery
+
+- `GET /api/templates`
+- Returns available templates:
+
+```json
+[
+  {
+    "id": "spotify-player-v1",
+    "name": "Spotify Player",
+    "description": "Original player-style poster"
+  },
+  {
+    "id": "minimal-clean-v1",
+    "name": "Minimal Clean",
+    "description": "Minimal alternative poster"
+  }
+]
+```
 
 ### Spotify Search
 
@@ -60,7 +95,7 @@ Base URL (local): `http://localhost:3001`
 
 - `POST /api/posters/preview`
   - Input: poster payload JSON.
-  - Output: normalized model + rendered HTML (JSON response).
+  - Output: normalized model + rendered HTML.
 - `POST /api/posters/render`
   - Input: poster payload JSON.
   - Output: rendered image binary (`image/png` or `image/jpeg`).
@@ -69,6 +104,123 @@ Base URL (local): `http://localhost:3001`
 
 - `GET /api/cover?url=<http-or-https-image-url>`
 - Fetches remote image and returns image bytes with cache headers.
+
+## Poster Payload Model
+
+Common normalized fields supported across templates:
+
+- `template`
+- `theme`
+- `track.title`
+- `track.artists`
+- `track.currentTime`
+- `track.totalTime`
+- `artwork.coverUrl`
+- `output.width`
+- `output.format`
+- `output.quality`
+
+Optional metadata fields currently accepted:
+
+- `track.album`
+- `track.year`
+- `track.spotifyUrl`
+- `artwork.accentColor`
+
+### Defaults / Backward Compatibility
+
+- If `template` is omitted, backend defaults to `spotify-player-v1`.
+- Existing `spotify-player-v1` requests remain supported.
+- Unknown template IDs return HTTP 400.
+
+## Example Requests
+
+### 1) Preview with default (spotify-player-v1)
+
+```http
+POST /api/posters/preview
+Content-Type: application/json
+
+{
+  "track": {
+    "title": "Conspiraciones",
+    "artists": "Rauw Alejandro",
+    "currentTime": "1:20",
+    "totalTime": "3:44"
+  },
+  "artwork": {
+    "coverUrl": "https://i.scdn.co/image/ab67616d0000b273..."
+  },
+  "output": {
+    "width": 1000,
+    "format": "jpeg",
+    "quality": 0.92
+  }
+}
+```
+
+### 2) Preview with minimal-clean-v1
+
+```http
+POST /api/posters/preview
+Content-Type: application/json
+
+{
+  "template": "minimal-clean-v1",
+  "theme": "inverse",
+  "track": {
+    "title": "Monaco",
+    "artists": "Bad Bunny",
+    "album": "nadie sabe lo que va a pasar mañana",
+    "year": "2023",
+    "currentTime": "0:58",
+    "totalTime": "4:27"
+  },
+  "artwork": {
+    "coverUrl": "https://i.scdn.co/image/ab67616d0000b273..."
+  },
+  "output": {
+    "width": 1200,
+    "format": "png"
+  }
+}
+```
+
+### 3) Render for either template
+
+```http
+POST /api/posters/render
+Content-Type: application/json
+
+{
+  "template": "spotify-player-v1",
+  "track": {
+    "title": "Conspiraciones",
+    "artists": "Rauw Alejandro",
+    "currentTime": "1:20",
+    "totalTime": "3:44"
+  },
+  "artwork": {
+    "coverUrl": "https://i.scdn.co/image/ab67616d0000b273..."
+  },
+  "output": {
+    "width": 1000,
+    "format": "jpeg",
+    "quality": 0.9
+  }
+}
+```
+
+## Adding a New Template
+
+1. Create a new folder under `templates/`, e.g. `templates/my-template-v1/index.js`.
+2. Export required fields (`id`, `displayName`, `description`, `normalizePayload`, `renderHtml`).
+3. Reuse helpers from `templates/shared.js` where possible.
+4. Register it in `templates/registry.js`.
+5. Verify:
+   - `GET /api/templates` includes it.
+   - `POST /api/posters/preview` returns expected HTML/model.
+   - `POST /api/posters/render` exports image with same visual output as preview.
 
 ## Local Development
 
@@ -144,21 +296,3 @@ When deploying on Railway:
 - Set all required environment variables in Railway project settings.
 - Set `FRONTEND_ORIGINS` to your production frontend domain(s).
 - Railway injects `PORT`; keep server binding to `process.env.PORT`.
-
-## Frontend Integration
-
-Frontend should treat this service as its API base URL.
-
-Typical integration:
-
-- Set frontend env var (example): `NEXT_PUBLIC_API_BASE_URL=https://your-backend.up.railway.app`
-- Call backend endpoints from browser/server components.
-- Ensure frontend origin is included in backend `FRONTEND_ORIGINS` to avoid CORS rejection.
-
-Example calls:
-
-```http
-GET {API_BASE_URL}/api/tracks?q=Despecha&limit=10
-POST {API_BASE_URL}/api/posters/preview
-POST {API_BASE_URL}/api/posters/render
-```
