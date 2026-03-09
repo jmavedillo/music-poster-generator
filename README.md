@@ -1,4 +1,4 @@
-# Music Poster Generator Backend
+# Music Poster Generator Backend (force change)
 
 Backend API for generating music posters from Spotify metadata using a multi-template poster system.
 
