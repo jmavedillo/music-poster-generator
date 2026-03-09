@@ -1,7 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const { normalizePosterPayload, renderPosterHtml } = require('./poster-template');
+const { buildPoster, listTemplates, PosterPayloadError } = require('./poster-service');
 
 let posterRenderer = null;
 
@@ -15,7 +15,7 @@ const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 
 app.use(express.json({ limit: '1mb' }));
 
-const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:8000', 'http://localhost:3000'];
+const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:3000'];
 const FRONTEND_ALLOWED_ORIGINS = (process.env.FRONTEND_ORIGINS || process.env.FRONTEND_ORIGIN || '')
   .split(',')
   .map((origin) => origin.trim())
@@ -41,6 +41,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('/api/posters/preview', cors(corsOptions));
 app.options('/api/posters/render', cors(corsOptions));
+app.options('/api/templates', cors(corsOptions));
 
 app.use((error, _req, res, next) => {
   if (error?.message?.startsWith('CORS blocked')) {
@@ -135,38 +136,50 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, service: 'spotify-api-proxy' });
 });
 
+app.get('/api/templates', (_req, res) => {
+  return res.json(listTemplates());
+});
+
 app.post('/api/posters/preview', (req, res) => {
   try {
-    const payload = normalizePosterPayload(req.body || {});
-    const html = renderPosterHtml(payload);
+    const { templateId, model, html } = buildPoster(req.body || {});
     return res.json({
-      template: payload.template,
+      template: templateId,
       html,
-      model: payload,
+      model,
     });
   } catch (error) {
-    return res.status(500).json({
+    const statusCode = error instanceof PosterPayloadError ? error.statusCode : 500;
+    const code = error instanceof PosterPayloadError ? error.code : 'POSTER_PREVIEW_FAILED';
+
+    return res.status(statusCode).json({
       error: error?.message || 'Failed to render preview',
-      code: 'POSTER_PREVIEW_FAILED',
-      details: {
-        template: req.body?.template || 'spotify-player-v1',
-      },
+      code,
+      details: error?.details || undefined,
     });
   }
 });
 
 app.post('/api/posters/render', async (req, res) => {
   try {
-    const payload = normalizePosterPayload(req.body || {});
+    const { model, html } = buildPoster(req.body || {});
     const renderer = await getPosterRenderer();
-    const { buffer, format, width, height } = await renderer.renderPosterImage(payload);
+    const { buffer, format, width, height } = await renderer.renderPosterImage({
+      html,
+      output: model.output,
+    });
+
     res.setHeader('Content-Type', format === 'png' ? 'image/png' : 'image/jpeg');
     res.setHeader('Content-Disposition', `attachment; filename="poster-${width}x${height}.${format === 'png' ? 'png' : 'jpg'}"`);
     return res.send(buffer);
   } catch (error) {
-    return res.status(500).json({
+    const statusCode = error instanceof PosterPayloadError ? error.statusCode : 500;
+    const code = error instanceof PosterPayloadError ? error.code : 'POSTER_RENDER_FAILED';
+
+    return res.status(statusCode).json({
       error: error?.message || 'Failed to render poster',
-      code: 'POSTER_RENDER_FAILED',
+      code,
+      details: error?.details || undefined,
     });
   }
 });

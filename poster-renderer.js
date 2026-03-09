@@ -1,4 +1,4 @@
-const { POSTER_HEIGHT, POSTER_WIDTH, renderPosterHtml } = require('./poster-template');
+const { POSTER_HEIGHT, POSTER_WIDTH } = require('./templates/shared');
 
 let chromium = null;
 
@@ -21,10 +21,10 @@ function loadChromium() {
   }
 
   const installHelp = [
-    "Cannot find Playwright runtime. Install it in the poster-renderer service dependencies.",
-    "Run: npm install playwright",
-    "Then install browser binaries: npx playwright install chromium",
-    "On minimal Linux hosts, you may also need: npx playwright install-deps chromium",
+    'Cannot find Playwright runtime. Install it in the poster-renderer service dependencies.',
+    'Run: npm install playwright',
+    'Then install browser binaries: npx playwright install chromium',
+    'On minimal Linux hosts, you may also need: npx playwright install-deps chromium',
   ].join(' ');
 
   const error = new Error(installHelp);
@@ -32,13 +32,16 @@ function loadChromium() {
   throw error;
 }
 
-async function renderPosterImage(payload) {
-  const html = renderPosterHtml(payload);
-  const width = Math.max(200, Math.round(Number(payload?.output?.width) || 1000));
+async function renderPosterImage({ html, output = {} }) {
+  if (!html || typeof html !== 'string') {
+    throw new Error('renderPosterImage requires html as a non-empty string');
+  }
+
+  const width = Math.max(200, Math.round(Number(output.width) || 1000));
   const scale = width / POSTER_WIDTH;
   const height = Math.round(POSTER_HEIGHT * scale);
-  const format = payload?.output?.format === 'png' ? 'png' : 'jpeg';
-  const quality = format === 'jpeg' ? Math.max(0.1, Math.min(1, Number(payload?.output?.quality) || 0.92)) : undefined;
+  const format = output.format === 'png' ? 'png' : 'jpeg';
+  const quality = format === 'jpeg' ? Math.max(0.1, Math.min(1, Number(output.quality) || 0.92)) : undefined;
 
   const chromiumBrowser = loadChromium();
   const browser = await chromiumBrowser.launch({ headless: true });
