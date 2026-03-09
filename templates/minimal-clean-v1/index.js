@@ -1,15 +1,17 @@
 const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml, normalizeCommonPayload, resolveProgressRatio } = require('../shared');
 
+const WAVE_BAR_HEIGHTS = [12, 22, 10, 30, 16, 36, 12, 42, 18, 30, 12, 34, 14, 26, 12];
+
 function normalizePayload(payload) {
   return normalizeCommonPayload(payload, { templateId: 'minimal-clean-v1' });
 }
 
+function renderWaveBars() {
+  return WAVE_BAR_HEIGHTS.map((height) => `<span style="--h:${height}px"></span>`).join('');
+}
+
 function renderHtml(model) {
-  const isInverse = model.theme === 'inverse';
   const progressPercent = Math.round(resolveProgressRatio(model.track.currentTime, model.track.totalTime) * 100);
-  const title = escapeHtml(model.track.title);
-  const artists = escapeHtml(model.track.artists);
-  const albumMeta = [model.track.album, model.track.year].filter(Boolean).map(escapeHtml).join(' · ');
 
   return `<!doctype html>
 <html>
@@ -23,91 +25,192 @@ function renderHtml(model) {
     body {
       width: ${POSTER_WIDTH}px;
       height: ${POSTER_HEIGHT}px;
+      overflow: hidden;
       font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
-      color: ${isInverse ? '#0f172a' : '#f8fafc'};
-      background: ${isInverse ? '#f8fafc' : '#09090b'};
+      background: #e9e9e9;
+      color: #0f0f0f;
     }
     .poster {
+      position: relative;
       width: 100%;
       height: 100%;
-      display: grid;
-      grid-template-rows: 260px 1fr;
+      overflow: hidden;
+      background: #111;
     }
-    .cover {
+    .photo {
+      position: absolute;
+      inset: 0;
       width: 100%;
-      height: 260px;
+      height: 100%;
       object-fit: cover;
-      display: block;
+      filter: grayscale(100%);
     }
-    .content {
-      padding: 22px 24px;
+    .overlay {
+      position: absolute;
+      inset: 22px;
+      border: 5px solid #fff;
       display: grid;
-      gap: 18px;
-      align-content: start;
+      grid-template-rows: auto 1fr auto;
+      padding: 24px 22px 22px;
+      color: #fff;
+      background: linear-gradient(to bottom, rgba(0,0,0,.15) 0%, rgba(0,0,0,.2) 45%, rgba(0,0,0,.65) 100%);
     }
-    .eyebrow {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: .18em;
-      opacity: 0.7;
-      margin: 0;
+    .wave-row { display: flex; justify-content: center; }
+    .wave-bars { display: flex; align-items: center; gap: 5px; height: 32px; }
+    .wave-bars span {
+      width: 5px;
+      height: var(--h);
+      max-height: 28px;
+      border-radius: 999px;
+      background: #fff;
+    }
+    .meta {
+      align-self: end;
+      display: grid;
+      gap: 10px;
+    }
+    .title-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: 8px;
     }
     .title {
       margin: 0;
-      font-size: 34px;
+      min-width: 0;
+      font-size: 30px;
       line-height: 1.05;
       letter-spacing: -0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .artists {
-      margin: 0;
-      font-size: 16px;
-      opacity: 0.88;
+    .heart {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      line-height: 1;
     }
-    .album-meta {
-      margin: -6px 0 0;
-      font-size: 13px;
-      opacity: 0.6;
-      min-height: 1em;
-    }
-    .progress-track {
-      height: 4px;
-      background: ${isInverse ? 'rgba(15, 23, 42, 0.16)' : 'rgba(248, 250, 252, 0.22)'};
+    .artists { margin: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .progress-bar {
+      position: relative;
+      width: 100%;
+      height: 8px;
       border-radius: 999px;
+      background: rgba(255,255,255,.5);
       overflow: hidden;
     }
-    .progress-track > span {
+    .progress-fill {
       display: block;
       width: ${progressPercent}%;
       height: 100%;
-      background: ${isInverse ? '#0f172a' : '#f8fafc'};
+      background: #fff;
     }
-    .times {
-      display: flex;
-      justify-content: space-between;
-      font-size: 12px;
-      opacity: 0.72;
-      margin-top: -8px;
+    .knob {
+      position: absolute;
+      top: 50%;
+      left: ${progressPercent}%;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
     }
-    .badge {
-      margin-top: 10px;
-      font-size: 11px;
-      letter-spacing: .16em;
-      text-transform: uppercase;
-      opacity: 0.68;
+    .time-row { margin-top: 5px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
+    .controls {
+      margin-top: 6px;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto 1fr 1fr;
+      align-items: center;
+      column-gap: 4px;
     }
+    .icon { position: relative; min-height: 36px; }
+    .play {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      background: #fff;
+      justify-self: center;
+    }
+    .play::before {
+      content: '';
+      position: absolute;
+      left: 39%;
+      top: 31%;
+      width: 0;
+      height: 0;
+      border-top: 10px solid transparent;
+      border-bottom: 10px solid transparent;
+      border-left: 17px solid #111;
+    }
+    .previous, .next { width: 48px; justify-self: center; }
+    .previous::before, .next::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-top: 11px solid transparent;
+      border-bottom: 11px solid transparent;
+    }
+    .previous::before { border-right: 18px solid #fff; left: 16px; }
+    .previous::after {
+      content: '';
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      width: 4px;
+      height: 22px;
+      background: #fff;
+      transform: translateY(-50%);
+    }
+    .next::before { border-left: 18px solid #fff; right: 16px; }
+    .next::after {
+      content: '';
+      position: absolute;
+      right: 11px;
+      top: 50%;
+      width: 4px;
+      height: 22px;
+      background: #fff;
+      transform: translateY(-50%);
+    }
+    .shuffle::before, .repeat::before {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      font-size: 24px;
+      line-height: 1;
+    }
+    .shuffle::before { content: '⇄'; }
+    .repeat::before { content: '↺'; }
   </style>
 </head>
 <body>
   <article class="poster">
-    <img class="cover" src="${escapeHtml(model.artwork.coverUrl)}" alt="Album cover" />
-    <section class="content">
-      <p class="eyebrow">Minimal Clean</p>
-      <h1 class="title">${title}</h1>
-      <p class="artists">${artists}</p>
-      <p class="album-meta">${albumMeta || '&nbsp;'}</p>
-      <div class="progress-track" aria-hidden="true"><span></span></div>
-      <div class="times"><span>${escapeHtml(model.track.currentTime)}</span><span>${escapeHtml(model.track.totalTime)}</span></div>
-      <p class="badge">${escapeHtml(model.template)}</p>
+    <img class="photo" src="${escapeHtml(model.artwork.coverUrl)}" alt="User photo" />
+    <section class="overlay">
+      <div class="wave-row"><div class="wave-bars">${renderWaveBars()}</div></div>
+      <div></div>
+      <section class="meta">
+        <div class="title-row"><h1 class="title">${escapeHtml(model.track.title)}</h1><span class="heart">♥</span></div>
+        <p class="artists">${escapeHtml(model.track.artists)}</p>
+        <div>
+          <div class="progress-bar"><span class="progress-fill"></span><span class="knob"></span></div>
+          <div class="time-row"><span>${escapeHtml(model.track.currentTime)}</span><span>${escapeHtml(model.track.totalTime)}</span></div>
+        </div>
+        <div class="controls" aria-hidden="true">
+          <span class="icon shuffle"></span>
+          <span class="icon previous"></span>
+          <span class="icon play"></span>
+          <span class="icon next"></span>
+          <span class="icon repeat"></span>
+        </div>
+      </section>
     </section>
   </article>
 </body>
@@ -117,7 +220,7 @@ function renderHtml(model) {
 module.exports = {
   id: 'minimal-clean-v1',
   displayName: 'Minimal Clean',
-  description: 'Minimal alternative poster',
+  description: 'Photo-based minimal poster with Spotify-like white overlay',
   defaultTheme: 'dark',
   normalizePayload,
   renderHtml,
