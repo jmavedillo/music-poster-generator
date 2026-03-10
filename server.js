@@ -142,9 +142,9 @@ app.get('/api/templates', (_req, res) => {
   return res.json(listTemplates());
 });
 
-app.post('/api/posters/preview', (req, res) => {
+app.post('/api/posters/preview', async (req, res) => {
   try {
-    const { templateId, model, html } = buildPoster(req.body || {});
+    const { templateId, model, html } = await buildPoster(req.body || {});
     return res.json({
       template: templateId,
       html,
@@ -164,7 +164,7 @@ app.post('/api/posters/preview', (req, res) => {
 
 app.post('/api/posters/render', async (req, res) => {
   try {
-    const { model, html } = buildPoster(req.body || {});
+    const { model, html } = await buildPoster(req.body || {});
     const renderer = await getPosterRenderer();
     const { buffer, format, width, height } = await renderer.renderPosterImage({
       html,

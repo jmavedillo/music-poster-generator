@@ -1,4 +1,5 @@
 const { getTemplateById, listTemplates, DEFAULT_TEMPLATE_ID } = require('./templates/registry');
+const { fetchSpotifyCodeSvg, stripSpotifySvgBackground } = require('./spotify-code');
 
 class PosterPayloadError extends Error {
   constructor(message, details = {}) {
@@ -34,7 +35,21 @@ function resolveTemplate(payload = {}) {
   return template;
 }
 
-function buildPoster(payload = {}) {
+async function resolveSpotifyCodeSvg(uri) {
+  if (!uri) {
+    return null;
+  }
+
+  try {
+    const spotifyCodeSvg = await fetchSpotifyCodeSvg(uri);
+    return stripSpotifySvgBackground(spotifyCodeSvg);
+  } catch (error) {
+    console.warn(`[poster-service] spotifyCodeSvg unavailable for uri "${uri}": ${error.message}`);
+    return null;
+  }
+}
+
+async function buildPoster(payload = {}) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
     throw new PosterPayloadError('Poster payload must be a JSON object');
   }
@@ -42,6 +57,7 @@ function buildPoster(payload = {}) {
   const requestedTemplateId = resolveTemplateId(payload);
   const template = resolveTemplate({ template: requestedTemplateId });
   const model = template.normalizePayload(payload);
+  model.spotifyCodeSvg = await resolveSpotifyCodeSvg(model.track?.uri);
   const html = template.renderHtml(model);
 
   if (!html || typeof html !== 'string') {
