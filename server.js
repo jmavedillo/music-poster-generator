@@ -121,14 +121,16 @@ function mapArtist(artist) {
 
 function mapTrack(track) {
   return {
-    id: track.id,
-    title: track.name,
-    artists: (track.artists || []).map((artist) => ({
-      id: artist.id,
-      name: artist.name,
+    id: track?.id || null,
+    title: track?.name || null,
+    artists: (track?.artists || []).map((artist) => ({
+      id: artist?.id || null,
+      name: artist?.name || null,
     })),
-    durationSeconds: Math.round((track.duration_ms || 0) / 1000),
-    coverUrl: track.album?.images?.[0]?.url || null,
+    durationSeconds: Math.round((track?.duration_ms || 0) / 1000),
+    coverUrl: track?.album?.images?.[0]?.url || null,
+    uri: track?.uri || null,
+    spotifyUrl: track?.external_urls?.spotify || null,
   };
 }
 
