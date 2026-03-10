@@ -41,6 +41,8 @@ function normalizeOutput(output = {}) {
 function normalizeCommonPayload(payload = {}, options = {}) {
   const safeTrack = payload.track || {};
   const safeArtwork = payload.artwork || {};
+  const normalizedUri = String(safeTrack.uri || payload.uri || '').trim();
+  const normalizedSpotifyUrl = String(safeTrack.spotifyUrl || payload.spotifyUrl || '').trim();
 
   return {
     template: options.templateId,
@@ -52,7 +54,8 @@ function normalizeCommonPayload(payload = {}, options = {}) {
       totalTime: String(safeTrack.totalTime || '0:00'),
       album: String(safeTrack.album || ''),
       year: String(safeTrack.year || ''),
-      spotifyUrl: String(safeTrack.spotifyUrl || ''),
+      spotifyUrl: normalizedSpotifyUrl,
+      uri: normalizedUri,
     },
     artwork: {
       coverUrl: normalizeCoverUrl(safeArtwork.coverUrl),
