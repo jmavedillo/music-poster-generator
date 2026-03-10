@@ -12,6 +12,14 @@ function renderWaveBars() {
   return WAVE_BAR_HEIGHTS.map((height) => `<span style="--h:${height}px"></span>`).join('');
 }
 
+function renderSpotifyCode(spotifyCodeSvg) {
+  if (!spotifyCodeSvg) {
+    return `<div class="wave-bars">${renderWaveBars()}</div>`;
+  }
+
+  return `<!-- spotify-code-svg:real --><div class="spotify-code-real">${spotifyCodeSvg}</div>`;
+}
+
 function stripLegacySpotifyCodeMarkup(html) {
   return String(html || '')
     .replace(/\s*\.spotify-code\s*\{[^}]*\}\s*/g, '\n')
@@ -52,6 +60,8 @@ function renderHtml(model) {
     .wave-row { display: flex; justify-content: center; }
     .wave-bars { display: flex; align-items: center; gap: 5px; height: 30px; }
     .wave-bars span { width: 5px; height: var(--h); max-height: 28px; background: #fff; border-radius: 999px; box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
+    .spotify-code-real { width: 100%; max-width: 348px; line-height: 0; display: flex; justify-content: center; overflow: visible; }
+    .spotify-code-real svg { width: 100% !important; max-width: 100%; height: auto !important; display: block; overflow: visible; }
     .title-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .35rem; margin-top: 32px; }
     .title { margin: 0; min-width: 0; font-size: 1.72rem; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .heart { border: 0; background: transparent; color: inherit; width: 26px; height: 26px; display: inline-grid; place-items: center; font-size: 1.55rem; line-height: 1; padding: 0; }
@@ -94,7 +104,7 @@ function renderHtml(model) {
         <img class="album-cover" src="${escapeHtml(model.artwork.coverUrl)}" alt="Album cover" />
       </figure>
       <section class="player-overlay">
-        <div class="wave-row" aria-hidden="true"><div class="wave-bars">${renderWaveBars()}</div></div>
+        <div class="wave-row" aria-hidden="true">${renderSpotifyCode(model.spotifyCodeSvg)}</div>
         <div class="title-row">
           <h2 class="title">${escapeHtml(model.track.title)}</h2>
           <button class="heart" aria-label="Liked song">♥</button>
