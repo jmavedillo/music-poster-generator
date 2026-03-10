@@ -2,15 +2,33 @@ const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml, normalizeCommonPayload, resolve
 
 const WAVE_BAR_HEIGHTS = [12, 22, 10, 30, 16, 36, 12, 42, 18, 30, 12, 34, 14, 26, 12];
 
+function normalizeTheme(theme) {
+  return ['bw', 'color', 'lofi'].includes(theme) ? theme : 'bw';
+}
+
 function normalizePayload(payload) {
-  return normalizeCommonPayload(payload, { templateId: 'minimal-clean-v1' });
+  const normalized = normalizeCommonPayload(payload, { templateId: 'minimal-clean-v1' });
+
+  return {
+    ...normalized,
+    theme: normalizeTheme(payload?.theme),
+  };
 }
 
 function renderWaveBars() {
   return WAVE_BAR_HEIGHTS.map((height) => `<span style="--h:${height}px"></span>`).join('');
 }
 
+function renderSpotifyCode(spotifyCodeSvg) {
+  if (!spotifyCodeSvg) {
+    return `<div class="wave-bars">${renderWaveBars()}</div>`;
+  }
+
+  return `<!-- spotify-code-svg:real --><div class="spotify-code-real">${spotifyCodeSvg}</div>`;
+}
+
 function renderHtml(model) {
+  const themeClass = `poster-theme-${normalizeTheme(model.theme)}`;
   const progressPercent = Math.round(resolveProgressRatio(model.track.currentTime, model.track.totalTime) * 100);
 
   return `<!doctype html>
@@ -55,7 +73,36 @@ function renderHtml(model) {
       color: #fff;
       background: linear-gradient(to bottom, rgba(0,0,0,.15) 0%, rgba(0,0,0,.2) 45%, rgba(0,0,0,.65) 100%);
     }
-    .wave-row { display: flex; justify-content: center; }
+    .poster-theme-color .photo {
+      filter: none;
+    }
+    .poster-theme-lofi .photo {
+      filter: sepia(.2) saturate(.82) contrast(.92) brightness(.95);
+      transform: scale(1.01);
+    }
+    .poster-theme-lofi::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle at 20% 16%, rgba(255, 192, 150, .12), transparent 42%),
+        radial-gradient(circle at 78% 82%, rgba(38, 71, 98, .12), transparent 46%),
+        radial-gradient(circle, rgba(255,255,255,.08) .7px, transparent .8px);
+      background-size: auto, auto, 3px 3px;
+      mix-blend-mode: soft-light;
+      opacity: .35;
+      z-index: 0;
+    }
+    .poster-theme-color .overlay {
+      background: linear-gradient(to bottom, rgba(0,0,0,.2) 0%, rgba(0,0,0,.28) 45%, rgba(0,0,0,.7) 100%);
+    }
+    .poster-theme-lofi .overlay {
+      background: linear-gradient(to bottom, rgba(0,0,0,.23) 0%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.74) 100%);
+      backdrop-filter: blur(1.2px);
+    }
+    .wave-row { display: flex; justify-content: center; align-items: center; min-height: 52px; }
+    .wave-row.wave-row-real { min-height: 64px; }
     .wave-bars { display: flex; align-items: center; gap: 5px; height: 32px; }
     .wave-bars span {
       width: 5px;
@@ -63,6 +110,20 @@ function renderHtml(model) {
       max-height: 28px;
       border-radius: 999px;
       background: #fff;
+    }
+    .spotify-code-real {
+      width: min(100%, 360px);
+      line-height: 0;
+      display: flex;
+      justify-content: center;
+      overflow: visible;
+    }
+    .spotify-code-real svg {
+      width: 100% !important;
+      max-width: 100%;
+      height: auto !important;
+      display: block;
+      overflow: visible;
     }
     .meta {
       align-self: end;
@@ -86,12 +147,13 @@ function renderHtml(model) {
       text-overflow: ellipsis;
     }
     .heart {
-      width: 26px;
-      height: 26px;
+      width: 32px;
+      height: 32px;
       display: grid;
       place-items: center;
-      font-size: 24px;
+      font-size: 28px;
       line-height: 1;
+      transform: translateY(-1px);
     }
     .artists { margin: 0; font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .progress-bar {
@@ -100,7 +162,7 @@ function renderHtml(model) {
       height: 8px;
       border-radius: 999px;
       background: rgba(255,255,255,.5);
-      overflow: hidden;
+      overflow: visible;
     }
     .progress-fill {
       display: block;
@@ -117,6 +179,9 @@ function renderHtml(model) {
       border-radius: 50%;
       transform: translate(-50%, -50%);
       background: #fff;
+      border: 2px solid rgba(20, 20, 20, .24);
+      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+      z-index: 2;
     }
     .time-row { margin-top: 5px; display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
     .controls {
@@ -191,10 +256,10 @@ function renderHtml(model) {
   </style>
 </head>
 <body>
-  <article class="poster">
+  <article class="poster ${themeClass}">
     <img class="photo" src="${escapeHtml(model.artwork.coverUrl)}" alt="User photo" />
     <section class="overlay">
-      <div class="wave-row"><div class="wave-bars">${renderWaveBars()}</div></div>
+      <div class="wave-row${model.spotifyCodeSvg ? " wave-row-real" : ""}">${renderSpotifyCode(model.spotifyCodeSvg)}</div>
       <div></div>
       <section class="meta">
         <div class="title-row"><h1 class="title">${escapeHtml(model.track.title)}</h1><span class="heart">♥</span></div>
@@ -221,7 +286,7 @@ module.exports = {
   id: 'minimal-clean-v1',
   displayName: 'Minimal Clean',
   description: 'Photo-based minimal poster with Spotify-like white overlay',
-  defaultTheme: 'dark',
+  defaultTheme: 'bw',
   normalizePayload,
   renderHtml,
 };

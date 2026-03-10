@@ -295,6 +295,7 @@ body {
   align-items: end;
   gap: 0.35rem;
   margin-top: 32px;
+  transform: translateY(-10px);
 }
 
 h2 {
@@ -332,6 +333,7 @@ h2 {
   font-size: 0.82rem;
   font-weight: 700;
   color: #f3f3f3;
+  transform: translateY(-10px);
 }
 
 .artist-text {

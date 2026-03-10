@@ -121,14 +121,16 @@ function mapArtist(artist) {
 
 function mapTrack(track) {
   return {
-    id: track.id,
-    title: track.name,
-    artists: (track.artists || []).map((artist) => ({
-      id: artist.id,
-      name: artist.name,
+    id: track?.id || null,
+    title: track?.name || null,
+    artists: (track?.artists || []).map((artist) => ({
+      id: artist?.id || null,
+      name: artist?.name || null,
     })),
-    durationSeconds: Math.round((track.duration_ms || 0) / 1000),
-    coverUrl: track.album?.images?.[0]?.url || null,
+    durationSeconds: Math.round((track?.duration_ms || 0) / 1000),
+    coverUrl: track?.album?.images?.[0]?.url || null,
+    uri: track?.uri || null,
+    spotifyUrl: track?.external_urls?.spotify || null,
   };
 }
 
@@ -140,9 +142,9 @@ app.get('/api/templates', (_req, res) => {
   return res.json(listTemplates());
 });
 
-app.post('/api/posters/preview', (req, res) => {
+app.post('/api/posters/preview', async (req, res) => {
   try {
-    const { templateId, model, html } = buildPoster(req.body || {});
+    const { templateId, model, html } = await buildPoster(req.body || {});
     return res.json({
       template: templateId,
       html,
@@ -162,7 +164,7 @@ app.post('/api/posters/preview', (req, res) => {
 
 app.post('/api/posters/render', async (req, res) => {
   try {
-    const { model, html } = buildPoster(req.body || {});
+    const { model, html } = await buildPoster(req.body || {});
     const renderer = await getPosterRenderer();
     const { buffer, format, width, height } = await renderer.renderPosterImage({
       html,
