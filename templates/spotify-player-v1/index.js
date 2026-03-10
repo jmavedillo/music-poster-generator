@@ -53,16 +53,16 @@ function renderHtml(model) {
     .background-layer { position: absolute; inset: -4%; background-image: var(--cover-image); background-size: cover; background-position: center; filter: blur(10px) saturate(0.95); transform: scale(1.08); z-index: -3; }
     .poster::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.42) 8%, rgba(0,0,0,.58) 45%, rgba(0,0,0,.9) 100%); z-index: -2; }
     .poster::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 18%, transparent 0 32%, rgba(0,0,0,.5) 72%); z-index: -1; }
-    .content { height: 100%; display: grid; grid-template-rows: auto 1fr; justify-items: center; align-items: start; row-gap: 6px; padding: 12px 14px 14px; }
-    .album-cover-wrap { width: 348px; height: 348px; margin: 0 0 10px; border: 4px solid #fff; overflow: hidden; }
+    .content { height: 100%; display: grid; grid-template-rows: auto 1fr; justify-items: center; align-items: start; row-gap: 4px; padding: 12px 14px 14px; }
+    .album-cover-wrap { width: 348px; height: 348px; margin: 0 0 6px; border: 4px solid #fff; overflow: hidden; }
     .album-cover { width: 100%; height: 100%; display: block; object-fit: cover; background: #fff; box-shadow: 0 6px 16px rgba(0,0,0,.3); }
     .player-overlay { width: 348px; align-self: stretch; display: grid; grid-template-rows: auto auto auto auto 1fr; }
-    .wave-row { display: flex; justify-content: center; align-items: center; min-height: 34px; }
+    .wave-row { display: flex; justify-content: center; align-items: center; min-height: 30px; }
     .wave-bars { display: flex; align-items: center; gap: 5px; height: 30px; }
     .wave-bars span { width: 5px; height: var(--h); max-height: 28px; background: #fff; border-radius: 999px; box-shadow: 0 0 0 1px rgba(255,255,255,.08); }
     .spotify-code-real { width: 100%; max-width: 190px; line-height: 0; display: flex; justify-content: center; overflow: visible; }
     .spotify-code-real svg { width: 100% !important; max-width: 100%; height: auto !important; display: block; overflow: visible; }
-    .title-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .35rem; margin-top: 32px; }
+    .title-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .35rem; margin-top: 24px; }
     .title { margin: 0; min-width: 0; font-size: 1.72rem; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .heart { border: 0; background: transparent; color: inherit; width: 26px; height: 26px; display: inline-grid; place-items: center; font-size: 1.55rem; line-height: 1; padding: 0; }
     .artist-row { margin: .18rem 0 .2rem; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .35rem; font-size: .82rem; font-weight: 700; color: #f3f3f3; }
