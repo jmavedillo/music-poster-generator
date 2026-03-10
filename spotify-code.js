@@ -48,6 +48,8 @@ function getSvgDimensions(svgText) {
 
   let width = parseLength(widthMatch?.[1] || null);
   let height = parseLength(heightMatch?.[1] || null);
+  let viewBoxWidth = null;
+  let viewBoxHeight = null;
 
   if (viewBoxMatch) {
     const viewBoxParts = viewBoxMatch[1]
@@ -56,12 +58,14 @@ function getSvgDimensions(svgText) {
       .map((part) => Number.parseFloat(part));
 
     if (viewBoxParts.length === 4 && viewBoxParts.every(Number.isFinite)) {
+      viewBoxWidth = viewBoxParts[2];
+      viewBoxHeight = viewBoxParts[3];
       if (width === null || width === '100%') width = viewBoxParts[2];
       if (height === null || height === '100%') height = viewBoxParts[3];
     }
   }
 
-  return { width, height };
+  return { width, height, viewBoxWidth, viewBoxHeight };
 }
 
 function parseRectAttribute(rectTag, attrName) {
@@ -85,8 +89,15 @@ function isFullBackgroundRect(rectTag, dimensions) {
   const isAtOrigin = (x === 0 || x === '0%' || x === null) && (y === 0 || y === '0%' || y === null);
   if (!isAtOrigin) return false;
 
-  const widthIsFull = width === '100%' || (typeof width === 'number' && typeof dimensions?.width === 'number' && Math.abs(width - dimensions.width) < 0.01);
-  const heightIsFull = height === '100%' || (typeof height === 'number' && typeof dimensions?.height === 'number' && Math.abs(height - dimensions.height) < 0.01);
+  const matchesAnyDimension = (value, dimensionValues) => {
+    if (value === '100%') return true;
+    if (typeof value !== 'number') return false;
+
+    return dimensionValues.some((dimensionValue) => typeof dimensionValue === 'number' && Math.abs(value - dimensionValue) < 0.01);
+  };
+
+  const widthIsFull = matchesAnyDimension(width, [dimensions?.width, dimensions?.viewBoxWidth]);
+  const heightIsFull = matchesAnyDimension(height, [dimensions?.height, dimensions?.viewBoxHeight]);
 
   const fill = (parseRectAttribute(rectTag, 'fill') || '').toLowerCase();
   const style = (parseRectAttribute(rectTag, 'style') || '').toLowerCase();
