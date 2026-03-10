@@ -19,6 +19,14 @@ function renderWaveBars() {
   return WAVE_BAR_HEIGHTS.map((height) => `<span style="--h:${height}px"></span>`).join('');
 }
 
+function renderSpotifyCode(spotifyCodeSvg) {
+  if (!spotifyCodeSvg) {
+    return `<div class="wave-bars">${renderWaveBars()}</div>`;
+  }
+
+  return `<!-- spotify-code-svg:real --><div class="spotify-code-real">${spotifyCodeSvg}</div>`;
+}
+
 function renderHtml(model) {
   const themeClass = `poster-theme-${normalizeTheme(model.theme)}`;
   const progressPercent = Math.round(resolveProgressRatio(model.track.currentTime, model.track.totalTime) * 100);
@@ -93,7 +101,8 @@ function renderHtml(model) {
       background: linear-gradient(to bottom, rgba(0,0,0,.23) 0%, rgba(0,0,0,.34) 45%, rgba(0,0,0,.74) 100%);
       backdrop-filter: blur(1.2px);
     }
-    .wave-row { display: flex; justify-content: center; }
+    .wave-row { display: flex; justify-content: center; align-items: center; min-height: 52px; }
+    .wave-row.wave-row-real { min-height: 64px; }
     .wave-bars { display: flex; align-items: center; gap: 5px; height: 32px; }
     .wave-bars span {
       width: 5px;
@@ -101,6 +110,20 @@ function renderHtml(model) {
       max-height: 28px;
       border-radius: 999px;
       background: #fff;
+    }
+    .spotify-code-real {
+      width: min(100%, 360px);
+      line-height: 0;
+      display: flex;
+      justify-content: center;
+      overflow: visible;
+    }
+    .spotify-code-real svg {
+      width: 100% !important;
+      max-width: 100%;
+      height: auto !important;
+      display: block;
+      overflow: visible;
     }
     .meta {
       align-self: end;
@@ -236,7 +259,7 @@ function renderHtml(model) {
   <article class="poster ${themeClass}">
     <img class="photo" src="${escapeHtml(model.artwork.coverUrl)}" alt="User photo" />
     <section class="overlay">
-      <div class="wave-row"><div class="wave-bars">${renderWaveBars()}</div></div>
+      <div class="wave-row${model.spotifyCodeSvg ? " wave-row-real" : ""}">${renderSpotifyCode(model.spotifyCodeSvg)}</div>
       <div></div>
       <section class="meta">
         <div class="title-row"><h1 class="title">${escapeHtml(model.track.title)}</h1><span class="heart">♥</span></div>
