@@ -1,5 +1,33 @@
 const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml, normalizeCommonPayload, resolveProgressRatio } = require('../shared');
 
+const fs = require('node:fs');
+const path = require('node:path');
+
+function resolveFontPath(fileName) {
+  const candidates = [
+    path.join(__dirname, '../../assets/fonts', fileName),
+    path.join(__dirname, '../../assets', fileName),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+const POSTER_SANS_REGULAR_PATH = resolveFontPath('DejaVuSans.ttf');
+const POSTER_SANS_BOLD_PATH = resolveFontPath('DejaVuSans-Bold.ttf');
+
+function buildFontFace(fontPath, weight) {
+  if (!fontPath) {
+    return '';
+  }
+
+  const fontBase64 = fs.readFileSync(fontPath).toString('base64');
+  return `@font-face { font-family: 'PosterSans'; src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype'); font-weight: ${weight}; font-style: normal; font-display: block; }`;
+}
+
+const FONT_FACE_CSS = [buildFontFace(POSTER_SANS_REGULAR_PATH, '400'), buildFontFace(POSTER_SANS_BOLD_PATH, '700 900')]
+  .filter(Boolean)
+  .join('\n    ');
+
 const WAVE_BAR_HEIGHTS = [12, 22, 10, 30, 16, 36, 12, 42, 18, 30, 12, 34, 14, 26, 12];
 
 function normalizeTheme(theme) {
@@ -40,11 +68,13 @@ function renderHtml(model) {
     @page { size: ${POSTER_WIDTH}px ${POSTER_HEIGHT}px; margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
+    ${FONT_FACE_CSS}
     body {
       width: ${POSTER_WIDTH}px;
       height: ${POSTER_HEIGHT}px;
       overflow: hidden;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-family: 'PosterSans', Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-synthesis: none;
       background: #e9e9e9;
       color: #0f0f0f;
     }
