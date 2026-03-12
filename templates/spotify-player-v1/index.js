@@ -9,11 +9,20 @@ const {
 const fs = require('node:fs');
 const path = require('node:path');
 
-const POSTER_SANS_REGULAR_PATH = path.join(__dirname, '../../assets/fonts/DejaVuSans-Regular.ttf');
-const POSTER_SANS_BOLD_PATH = path.join(__dirname, '../../assets/fonts/DejaVuSans-Bold.ttf');
+function resolveFontPath(fileName) {
+  const candidates = [
+    path.join(__dirname, '../../assets/fonts', fileName),
+    path.join(__dirname, '../../assets', fileName),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+const POSTER_SANS_REGULAR_PATH = resolveFontPath('DejaVuSans.ttf');
+const POSTER_SANS_BOLD_PATH = resolveFontPath('DejaVuSans-Bold.ttf');
 
 function buildFontFace(fontPath, weight) {
-  if (!fs.existsSync(fontPath)) {
+  if (!fontPath) {
     return '';
   }
 
@@ -42,10 +51,6 @@ function renderSpotifyCode(spotifyCodeSvg) {
 function renderIcon(type) {
   const iconMap = {
     heart: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.41 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.41 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
-    shuffle:
-      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17 3h4v4h-2V6.41l-4.29 4.3-1.42-1.42L17.59 5H17V3zM3 7h3.59l6.7 6.71-1.42 1.42L5.41 9H3V7zm14 10h.59l-4.3-4.29 1.42-1.42 4.3 4.3V15h2v4h-4v-2zM3 15h2.41l2.83-2.83 1.42 1.42L6.59 17H3v-2z"/></svg>',
-    repeat:
-      '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M17 17H7v-2h10V12l4 4-4 4v-3zM7 7h10V4l4 4-4 4V9H7v2L3 7l4-4v4z"/></svg>',
   };
 
   return iconMap[type] || '';
@@ -101,7 +106,7 @@ function renderHtml(model) {
     .artist-row { margin: .18rem 0 .2rem; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .35rem; font-size: .82rem; font-weight: 700; color: #f3f3f3; }
     .artist-text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .explicit { display: inline-flex; align-items: center; justify-content: center; width: 1.5em; height: 1.25em; background: rgba(255,255,255,.9); color: #0f0f0f; font-size: .62em; border-radius: 6px; font-weight: 900; }
-    .progress-wrap { margin-bottom: 2px; }
+    .progress-wrap { margin-bottom: 2px; transform: translateY(10px); }
     .progress-bar { width: 100%; height: 8px; border-radius: 999px; background: rgba(255,255,255,.96); position: relative; }
     .progress-fill { position: absolute; inset: 0 auto 0 0; width: ${progressPercent}%; border-radius: inherit; background: rgba(255,255,255,.95); }
     .knob { position: absolute; left: ${progressPercent}%; top: 50%; width: 20px; height: 20px; border-radius: 50%; transform: translate(-50%, -50%); background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.3); }
@@ -117,7 +122,9 @@ function renderHtml(model) {
     .previous::after { content: ''; position: absolute; left: 11px; top: 50%; width: 4px; height: 26px; background: currentColor; transform: translateY(-50%); }
     .next::before { border-left: 22px solid currentColor; right: 17px; }
     .next::after { content: ''; position: absolute; right: 11px; top: 50%; width: 4px; height: 26px; background: currentColor; transform: translateY(-50%); }
-    .shuffle svg, .repeat svg { width: 30px; height: 30px; }
+    .shuffle::before, .repeat::before { position: absolute; inset: 0; display: grid; place-items: center; font-size: 24px; line-height: 1; }
+    .shuffle::before { content: '⇄'; }
+    .repeat::before { content: '↺'; }
     .poster-theme-inverse { color: #1f1f1f; }
     .poster-theme-inverse::before { background: linear-gradient(to bottom, rgba(255,255,255,.3) 8%, rgba(255,255,255,.5) 45%, rgba(255,255,255,.85) 100%); }
     .poster-theme-inverse::after { background: radial-gradient(circle at 50% 18%, transparent 0 32%, rgba(255,255,255,.35) 72%); }
@@ -148,11 +155,11 @@ function renderHtml(model) {
           <div class="time-row"><span>${escapeHtml(model.track.currentTime)}</span><span>${escapeHtml(model.track.totalTime)}</span></div>
         </div>
         <div class="controls" aria-label="Playback controls">
-          <button class="icon shuffle" aria-label="Shuffle">${renderIcon('shuffle')}</button>
+          <button class="icon shuffle" aria-label="Shuffle"></button>
           <button class="icon previous" aria-label="Previous"></button>
           <button class="icon play" aria-label="Play"></button>
           <button class="icon next" aria-label="Next"></button>
-          <button class="icon repeat" aria-label="Repeat">${renderIcon('repeat')}</button>
+          <button class="icon repeat" aria-label="Repeat"></button>
         </div>
       </section>
     </section>
