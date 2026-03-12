@@ -6,6 +6,34 @@ const {
   resolveProgressRatio,
 } = require('../shared');
 
+const fs = require('node:fs');
+const path = require('node:path');
+
+function resolveFontPath(fileName) {
+  const candidates = [
+    path.join(__dirname, '../../assets/fonts', fileName),
+    path.join(__dirname, '../../assets', fileName),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+const POSTER_SANS_REGULAR_PATH = resolveFontPath('DejaVuSans.ttf');
+const POSTER_SANS_BOLD_PATH = resolveFontPath('DejaVuSans-Bold.ttf');
+
+function buildFontFace(fontPath, weight) {
+  if (!fontPath) {
+    return '';
+  }
+
+  const fontBase64 = fs.readFileSync(fontPath).toString('base64');
+  return `@font-face { font-family: 'PosterSans'; src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype'); font-weight: ${weight}; font-style: normal; font-display: block; }`;
+}
+
+const FONT_FACE_CSS = [buildFontFace(POSTER_SANS_REGULAR_PATH, '400'), buildFontFace(POSTER_SANS_BOLD_PATH, '700 900')]
+  .filter(Boolean)
+  .join('\n    ');
+
 const WAVE_BAR_HEIGHTS = [16, 26, 12, 34, 20, 40, 14, 46, 22, 32, 12, 38, 18, 44, 16];
 
 function renderWaveBars() {
@@ -18,6 +46,14 @@ function renderSpotifyCode(spotifyCodeSvg) {
   }
 
   return `<!-- spotify-code-svg:real --><div class="spotify-code-real">${spotifyCodeSvg}</div>`;
+}
+
+function renderIcon(type) {
+  const iconMap = {
+    heart: '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.41 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.41 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+  };
+
+  return iconMap[type] || '';
 }
 
 function stripLegacySpotifyCodeMarkup(html) {
@@ -48,7 +84,8 @@ function renderHtml(model) {
     :root { color-scheme: light; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
-    body { width: ${POSTER_WIDTH}px; height: ${POSTER_HEIGHT}px; overflow: hidden; font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif; }
+    ${FONT_FACE_CSS}
+    body { width: ${POSTER_WIDTH}px; height: ${POSTER_HEIGHT}px; overflow: hidden; font-family: 'PosterSans', Arial, Helvetica, sans-serif; font-synthesis: none; }
     .poster { position: relative; width: ${POSTER_WIDTH}px; height: ${POSTER_HEIGHT}px; overflow: hidden; border-radius: 0; isolation: isolate; color: #fff; }
     .background-layer { position: absolute; inset: -4%; background-image: var(--cover-image); background-size: cover; background-position: center; filter: blur(10px) saturate(0.95); transform: scale(1.08); z-index: -3; }
     .poster::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.42) 8%, rgba(0,0,0,.58) 45%, rgba(0,0,0,.9) 100%); z-index: -2; }
@@ -64,17 +101,19 @@ function renderHtml(model) {
     .spotify-code-real svg { width: 100% !important; max-width: 100%; height: auto !important; display: block; overflow: visible; }
     .title-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .35rem; margin-top: 24px; }
     .title { margin: 0; min-width: 0; font-size: 1.72rem; font-weight: 800; line-height: 1.1; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .heart { border: 0; background: transparent; color: inherit; width: 26px; height: 26px; display: inline-grid; place-items: center; font-size: 1.55rem; line-height: 1; padding: 0; }
+    .heart { border: 0; background: transparent; color: inherit; width: 26px; height: 26px; display: inline-grid; place-items: center; line-height: 1; padding: 0; }
+    .heart svg { width: 24px; height: 24px; display: block; }
     .artist-row { margin: .18rem 0 .2rem; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: .35rem; font-size: .82rem; font-weight: 700; color: #f3f3f3; }
     .artist-text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .explicit { display: inline-flex; align-items: center; justify-content: center; width: 1.5em; height: 1.25em; background: rgba(255,255,255,.9); color: #0f0f0f; font-size: .62em; border-radius: 6px; font-weight: 900; }
-    .progress-wrap { margin-bottom: 2px; }
+    .progress-wrap { margin-bottom: 2px; transform: translateY(10px); }
     .progress-bar { width: 100%; height: 8px; border-radius: 999px; background: rgba(255,255,255,.96); position: relative; }
     .progress-fill { position: absolute; inset: 0 auto 0 0; width: ${progressPercent}%; border-radius: inherit; background: rgba(255,255,255,.95); }
     .knob { position: absolute; left: ${progressPercent}%; top: 50%; width: 20px; height: 20px; border-radius: 50%; transform: translate(-50%, -50%); background: #fff; box-shadow: 0 3px 8px rgba(0,0,0,.3); }
     .time-row { margin-top: .2rem; display: flex; justify-content: space-between; font-size: .72rem; font-weight: 700; }
     .controls { align-self: end; display: grid; grid-template-columns: 1fr 1fr auto 1fr 1fr; align-items: center; column-gap: 2px; margin-top: -8px; }
-    .icon { position: relative; border: 0; background: transparent; color: inherit; min-height: 38px; }
+    .icon { position: relative; border: 0; background: transparent; color: inherit; min-height: 38px; display: inline-grid; place-items: center; }
+    .icon svg { width: 28px; height: 28px; display: block; }
     .play { width: 72px; height: 72px; border-radius: 50%; background: #fff; justify-self: center; }
     .play::before { content: ''; position: absolute; left: 39%; top: 31%; width: 0; height: 0; border-top: 12px solid transparent; border-bottom: 12px solid transparent; border-left: 19px solid #111; }
     .previous, .next { width: 54px; justify-self: center; }
@@ -83,8 +122,9 @@ function renderHtml(model) {
     .previous::after { content: ''; position: absolute; left: 11px; top: 50%; width: 4px; height: 26px; background: currentColor; transform: translateY(-50%); }
     .next::before { border-left: 22px solid currentColor; right: 17px; }
     .next::after { content: ''; position: absolute; right: 11px; top: 50%; width: 4px; height: 26px; background: currentColor; transform: translateY(-50%); }
-    .shuffle::before { content: '⇄'; font-size: 1.75rem; line-height: 1; }
-    .repeat::before { content: '↺'; font-size: 1.75rem; line-height: 1; }
+    .shuffle::before, .repeat::before { position: absolute; inset: 0; display: grid; place-items: center; font-size: 24px; line-height: 1; }
+    .shuffle::before { content: '⇄'; }
+    .repeat::before { content: '↺'; }
     .poster-theme-inverse { color: #1f1f1f; }
     .poster-theme-inverse::before { background: linear-gradient(to bottom, rgba(255,255,255,.3) 8%, rgba(255,255,255,.5) 45%, rgba(255,255,255,.85) 100%); }
     .poster-theme-inverse::after { background: radial-gradient(circle at 50% 18%, transparent 0 32%, rgba(255,255,255,.35) 72%); }
@@ -107,7 +147,7 @@ function renderHtml(model) {
         <div class="wave-row" aria-hidden="true">${renderSpotifyCode(model.spotifyCodeSvg)}</div>
         <div class="title-row">
           <h2 class="title">${escapeHtml(model.track.title)}</h2>
-          <button class="heart" aria-label="Liked song">♥</button>
+          <button class="heart" aria-label="Liked song">${renderIcon('heart')}</button>
         </div>
         <p class="artist-row"><span class="explicit">E</span><span class="artist-text">${escapeHtml(model.track.artists)}</span></p>
         <div class="progress-wrap" aria-hidden="true">

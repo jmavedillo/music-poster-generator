@@ -1,5 +1,51 @@
 const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml, normalizeCommonPayload, resolveProgressRatio } = require('../shared');
 
+const fs = require('node:fs');
+const path = require('node:path');
+
+function resolveFontPath(fileName) {
+  const candidates = [
+    path.join(__dirname, '../../assets/fonts', fileName),
+    path.join(__dirname, '../../assets', fileName),
+  ];
+
+  return candidates.find((candidate) => fs.existsSync(candidate)) || null;
+}
+
+const POSTER_SANS_REGULAR_PATH = resolveFontPath('DejaVuSans.ttf');
+const POSTER_SANS_BOLD_PATH = resolveFontPath('DejaVuSans-Bold.ttf');
+const INTER_LIGHT_PATH = resolveFontPath('Inter-Light.ttf') || resolveFontPath('DejaVuSans-ExtraLight.ttf');
+const INTER_BOLD_PATH = resolveFontPath('Inter-Bold.ttf') || POSTER_SANS_BOLD_PATH;
+
+function buildFontFace(fontPath, weight) {
+  if (!fontPath) {
+    return '';
+  }
+
+  const fontBase64 = fs.readFileSync(fontPath).toString('base64');
+  return `@font-face { font-family: 'PosterSans'; src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype'); font-weight: ${weight}; font-style: normal; font-display: block; }`;
+}
+
+function buildNamedFontFace(fontPath, family, weight) {
+  if (!fontPath) {
+    return '';
+  }
+
+  const fontBase64 = fs.readFileSync(fontPath).toString('base64');
+  return `@font-face { font-family: '${family}'; src: url(data:font/truetype;charset=utf-8;base64,${fontBase64}) format('truetype'); font-weight: ${weight}; font-style: normal; font-display: block; }`;
+}
+
+const FONT_FACE_CSS = [buildFontFace(POSTER_SANS_REGULAR_PATH, '400'), buildFontFace(POSTER_SANS_BOLD_PATH, '700 900')]
+  .filter(Boolean)
+  .join('\n    ');
+
+const INTER_FONT_FACE_CSS = [
+  buildNamedFontFace(INTER_LIGHT_PATH, 'PosterInter', '300'),
+  buildNamedFontFace(INTER_BOLD_PATH, 'PosterInter', '700'),
+]
+  .filter(Boolean)
+  .join('\n    ');
+
 const WAVE_BAR_HEIGHTS = [12, 22, 10, 30, 16, 36, 12, 42, 18, 30, 12, 34, 14, 26, 12];
 
 function normalizeTheme(theme) {
@@ -40,11 +86,14 @@ function renderHtml(model) {
     @page { size: ${POSTER_WIDTH}px ${POSTER_HEIGHT}px; margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
+    ${FONT_FACE_CSS}
+    ${INTER_FONT_FACE_CSS}
     body {
       width: ${POSTER_WIDTH}px;
       height: ${POSTER_HEIGHT}px;
       overflow: hidden;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-family: 'PosterSans', Inter, system-ui, -apple-system, Segoe UI, sans-serif;
+      font-synthesis: none;
       background: #e9e9e9;
       color: #0f0f0f;
     }
@@ -54,6 +103,33 @@ function renderHtml(model) {
       height: 100%;
       overflow: hidden;
       background: #111;
+    }
+    .watermark {
+      position: absolute;
+      top: -9px;
+      right: 22px;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0;
+      font-family: 'PosterInter', Inter, 'PosterSans', system-ui, -apple-system, Segoe UI, sans-serif;
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .watermark-azte {
+      color: #fff;
+      font-weight: 700;
+    }
+    .watermark-dot {
+      color: #FF6B57;
+      font-weight: 700;
+    }
+    .watermark-uno {
+      color: #fff;
+      font-weight: 300;
     }
     .photo {
       position: absolute;
@@ -258,6 +334,7 @@ function renderHtml(model) {
 <body>
   <article class="poster ${themeClass}">
     <img class="photo" src="${escapeHtml(model.artwork.coverUrl)}" alt="User photo" />
+    <p class="watermark" aria-hidden="true"><span class="watermark-azte">AZTE</span><span class="watermark-dot">.</span><span class="watermark-uno">UNO</span></p>
     <section class="overlay">
       <div class="wave-row${model.spotifyCodeSvg ? " wave-row-real" : ""}">${renderSpotifyCode(model.spotifyCodeSvg)}</div>
       <div></div>
