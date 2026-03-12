@@ -106,7 +106,7 @@ function renderHtml(model) {
     }
     .watermark {
       position: absolute;
-      top: 6px;
+      top: -9px;
       right: 22px;
       display: inline-flex;
       align-items: baseline;
