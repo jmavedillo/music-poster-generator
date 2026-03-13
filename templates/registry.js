@@ -1,7 +1,8 @@
 const spotifyPlayerV1 = require('./spotify-player-v1');
 const minimalCleanV1 = require('./minimal-clean-v1');
+const mapMessageV1 = require('./map-message-v1');
 
-const templates = [spotifyPlayerV1, minimalCleanV1];
+const templates = [spotifyPlayerV1, minimalCleanV1, mapMessageV1];
 
 const templateMap = new Map(templates.map((template) => [template.id, template]));
 
