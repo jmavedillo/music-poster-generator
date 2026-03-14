@@ -50,6 +50,21 @@ function hasObjectContent(obj, keys) {
   return keys.some((key) => hasContent(obj[key]));
 }
 
+function normalizeSpotifyUrl(value) {
+  const normalized = normalizeText(value);
+
+  if (/^https?:\/\/open\.spotify\.com\/track\//i.test(normalized)) {
+    return normalized;
+  }
+
+  const uriMatch = normalized.match(/^spotify:track:([a-zA-Z0-9]+)$/i);
+  if (uriMatch) {
+    return `https://open.spotify.com/track/${uriMatch[1]}`;
+  }
+
+  return '';
+}
+
 function normalizePayload(payload = {}) {
   const song = payload.song && typeof payload.song === 'object' ? payload.song : {};
   const place = payload.place && typeof payload.place === 'object' ? payload.place : {};
@@ -67,6 +82,7 @@ function normalizePayload(payload = {}) {
       title: normalizeText(song.title),
       artist: normalizeText(song.artist),
       coverUrl: normalizeText(song.coverUrl),
+      spotifyUrl: normalizeSpotifyUrl(song.spotifyUrl || song.uri),
     },
     place: {
       title: normalizeText(place.title),
