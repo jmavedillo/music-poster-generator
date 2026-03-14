@@ -428,7 +428,7 @@ function renderHtml(model) {
         'steps:',
         ...(window.__MAP_DEBUG || []).map((step, index) => '  ' + (index + 1) + '. ' + step),
       ];
-      panel.textContent = lines.join('\n');
+      panel.textContent = lines.join('\\n');
     }
 
     function reportBootError(error, phase) {
