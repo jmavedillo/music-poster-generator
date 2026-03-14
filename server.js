@@ -119,6 +119,30 @@ function mapArtist(artist) {
   };
 }
 
+
+function extractResolvedMapData(debug) {
+  const mapResolved = debug && typeof debug === 'object' ? debug.mapResolved : null;
+  if (!mapResolved || typeof mapResolved !== 'object') {
+    return null;
+  }
+
+  const lat = Number(mapResolved.lat);
+  const lng = Number(mapResolved.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null;
+  }
+
+  const googleMapsUrl = String(mapResolved.googleMapsUrl || '').trim();
+  const googleMapsDirectionsUrl = String(mapResolved.googleMapsDirectionsUrl || '').trim();
+
+  return {
+    lat,
+    lng,
+    googleMapsUrl: googleMapsUrl || undefined,
+    googleMapsDirectionsUrl: googleMapsDirectionsUrl || undefined,
+  };
+}
+
 function mapTrack(track) {
   return {
     id: track?.id || null,
@@ -145,6 +169,7 @@ app.get('/api/templates', (_req, res) => {
 app.post('/api/posters/preview', async (req, res) => {
   try {
     const { templateId, model, html } = await buildPoster(req.body || {});
+    let responseModel = model;
     let debug;
 
     if (templateId === 'map_message_v1') {
@@ -161,10 +186,20 @@ app.post('/api/posters/preview', async (req, res) => {
       }
     }
 
+    if (templateId === 'map_message_v1') {
+      const map = extractResolvedMapData(debug);
+      if (map) {
+        responseModel = {
+          ...model,
+          map,
+        };
+      }
+    }
+
     return res.json({
       template: templateId,
       html,
-      model,
+      model: responseModel,
       debug,
     });
   } catch (error) {
