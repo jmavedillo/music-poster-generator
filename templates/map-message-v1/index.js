@@ -81,13 +81,15 @@ function renderSongCard(model) {
   if (!model.showSongCard) return '';
 
   const safeCover = model.song.coverUrl || FALLBACK_COVER_DATA_URI;
-  const songLine = [model.song.title, model.song.artist].filter(hasContent).join(' · ') || 'Unknown song · Unknown artist';
+  const songTitle = model.song.title || 'Unknown song';
+  const songArtist = model.song.artist || 'Unknown artist';
 
   return `<section class="overlay-card overlay-card--song" id="song-card">
     <img class="overlay-song-cover" id="song-cover" src="${escapeHtml(safeCover)}" alt="Song cover" loading="eager" decoding="sync" crossorigin="anonymous" referrerpolicy="no-referrer" onerror='this.onerror=null;this.src="${FALLBACK_COVER_DATA_URI}";' />
     <div class="overlay-song-copy">
-      <p class="overlay-eyebrow">Now playing</p>
-      <p class="overlay-primary" id="song-title">${escapeHtml(songLine)}</p>
+      <p class="overlay-eyebrow">NOW PLAYING</p>
+      <p class="overlay-primary overlay-song-title" id="song-title">${escapeHtml(songTitle)}</p>
+      <p class="overlay-secondary overlay-song-artist" id="song-artist">${escapeHtml(songArtist)}</p>
     </div>
   </section>`;
 }
@@ -209,6 +211,7 @@ function renderHtml(model) {
       gap: 7px;
       align-items: center;
       max-width: min(47%, 320px);
+      min-height: 52px;
     }
 
     .overlay-card--place {
@@ -235,7 +238,24 @@ function renderHtml(model) {
 
     .overlay-song-copy {
       display: grid;
-      gap: 1px;
+      gap: 2px;
+    }
+
+    .overlay-song-title,
+    .overlay-song-artist {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .overlay-song-title {
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .overlay-song-artist {
+      font-size: 11px;
+      line-height: 1.2;
     }
 
     .overlay-eyebrow {
@@ -305,7 +325,7 @@ function renderHtml(model) {
     .message-strips {
       position: absolute;
       left: -24px;
-      bottom: 20px;
+      bottom: 34px;
       z-index: 5;
       display: grid;
       gap: 5px;
