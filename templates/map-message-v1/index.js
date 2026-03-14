@@ -3,6 +3,7 @@ const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml } = require('../shared');
 const FALLBACK_COVER_DATA_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ececec'/%3E%3Cstop offset='100%25' stop-color='%23d9d9d9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='12' fill='url(%23g)'/%3E%3Cpath d='M23 82l21-21 13 13 16-19 24 27H23z' fill='rgba(0,0,0,0.18)'/%3E%3Ccircle cx='42' cy='40' r='8' fill='rgba(0,0,0,0.2)'/%3E%3C/svg%3E";
 const INTRO_MAX_LENGTH = 56;
 const MAIN_MAX_LENGTH = 86;
+const ALLOWED_STYLE_VARIANTS = new Set(['style1', 'style2', 'style3']);
 
 function clampText(value, maxLength) {
   const text = normalizeText(value);
@@ -65,6 +66,11 @@ function normalizeSpotifyUrl(value) {
   return '';
 }
 
+function normalizeStyleVariant(value) {
+  const normalized = normalizeText(value).toLowerCase();
+  return ALLOWED_STYLE_VARIANTS.has(normalized) ? normalized : 'style1';
+}
+
 function normalizePayload(payload = {}) {
   const song = payload.song && typeof payload.song === 'object' ? payload.song : {};
   const place = payload.place && typeof payload.place === 'object' ? payload.place : {};
@@ -74,6 +80,7 @@ function normalizePayload(payload = {}) {
 
   const model = {
     template: 'map_message_v1',
+    styleVariant: normalizeStyleVariant(payload.styleVariant),
     mapQuery: normalizeText(payload.mapQuery),
     marker: {
       type: marker.type === 'pin' ? 'pin' : 'pin',
@@ -477,6 +484,7 @@ function renderHtml(model) {
 
     const mapQuery = ${JSON.stringify(mapQuery)};
     const markerType = ${JSON.stringify(model.marker.type)};
+    const styleVariant = ${JSON.stringify(model.styleVariant)};
 
     window.__MAP_READY = false;
     window.__MAP_FAILED = false;
@@ -555,7 +563,7 @@ function renderHtml(model) {
       return 'minor';
     }
 
-    function restyleLayer(layer) {
+    function restyleLayerStyle1(layer) {
       const id = layer.id || '';
 
       if (layer.type === 'symbol') return { ...layer, layout: { ...(layer.layout || {}), visibility: 'none' } };
@@ -613,6 +621,40 @@ function renderHtml(model) {
       }
 
       return layer;
+    }
+
+    function restyleLayerStyle2(layer) {
+      // Placeholder branch: currently keeps style1 visuals until style2 design is defined.
+      return restyleLayerStyle1(layer);
+    }
+
+    function restyleLayerStyle3(layer) {
+      // Placeholder branch: currently keeps style1 visuals until style3 design is defined.
+      return restyleLayerStyle1(layer);
+    }
+
+    function resolveMapStyleVariant(variant) {
+      switch (variant) {
+        case 'style2':
+          return {
+            variant: 'style2',
+            styleUrl: BASE_STYLE_URL,
+            restyleLayer: restyleLayerStyle2,
+          };
+        case 'style3':
+          return {
+            variant: 'style3',
+            styleUrl: BASE_STYLE_URL,
+            restyleLayer: restyleLayerStyle3,
+          };
+        case 'style1':
+        default:
+          return {
+            variant: 'style1',
+            styleUrl: BASE_STYLE_URL,
+            restyleLayer: restyleLayerStyle1,
+          };
+      }
     }
 
     function chooseZoomForPlace(result, detailLevel) {
@@ -752,13 +794,13 @@ function renderHtml(model) {
       return results[0];
     }
 
-    async function loadMonochromeEditorialStyle() {
-      logStep('starting style fetch', BASE_STYLE_URL);
-      const response = await fetch(BASE_STYLE_URL);
+    async function loadMonochromeEditorialStyle(styleConfig) {
+      logStep('starting style fetch', styleConfig.styleUrl + ' (' + styleConfig.variant + ')');
+      const response = await fetch(styleConfig.styleUrl);
       if (!response.ok) throw new Error('Style fetch failed');
       const style = await response.json();
       logStep('style fetch success', 'layers=' + (Array.isArray(style.layers) ? style.layers.length : 0));
-      return { ...style, layers: (style.layers || []).map(restyleLayer) };
+      return { ...style, layers: (style.layers || []).map(styleConfig.restyleLayer) };
     }
 
     async function boot() {
@@ -788,9 +830,11 @@ function renderHtml(model) {
         const pinCenter = [pinLng, pinLat];
         const zoom = chooseZoomForPlace(result, DEFAULT_DETAIL_LEVEL);
         const mapCenter = offsetCenterForPin(pinCenter, zoom, PIN_HORIZONTAL_OFFSET_PX, PIN_VERTICAL_OFFSET_PX);
+        const mapStyleConfig = resolveMapStyleVariant(styleVariant);
+        logStep('style variant resolved', mapStyleConfig.variant);
 
         phase = 'style fetch';
-        const style = await loadMonochromeEditorialStyle();
+        const style = await loadMonochromeEditorialStyle(mapStyleConfig);
 
         phase = 'map creation';
         logStep('creating map', JSON.stringify({ center: mapCenter, pinCenter, zoom }));
