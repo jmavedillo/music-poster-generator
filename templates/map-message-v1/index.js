@@ -466,6 +466,20 @@ function renderHtml(model) {
     window.__MAP_FAILED = false;
     window.__MAP_ERROR = '';
     window.__MAP_DEBUG = [];
+    window.__MAP_RESOLVED = null;
+
+    function normalizeCoordinate(value) {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function buildGoogleMapsPlaceUrl(lat, lng) {
+      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(lat + ',' + lng);
+    }
+
+    function buildGoogleMapsDirectionsUrl(lat, lng) {
+      return 'https://www.google.com/maps/dir/?api=1&destination=' + encodeURIComponent(lat + ',' + lng);
+    }
 
     function logStep(step, details) {
       const message = details ? step + ': ' + details : step;
@@ -742,7 +756,20 @@ function renderHtml(model) {
 
         phase = 'geocoding';
         const result = await geocodePlace(mapQuery || 'Puerta del Sol, Madrid');
-        const pinCenter = [Number(result.lon), Number(result.lat)];
+        const pinLat = normalizeCoordinate(result.lat);
+        const pinLng = normalizeCoordinate(result.lon);
+        if (pinLat === null || pinLng === null) {
+          throw new Error('Geocoding returned invalid coordinates');
+        }
+
+        window.__MAP_RESOLVED = {
+          lat: pinLat,
+          lng: pinLng,
+          googleMapsUrl: buildGoogleMapsPlaceUrl(pinLat, pinLng),
+          googleMapsDirectionsUrl: buildGoogleMapsDirectionsUrl(pinLat, pinLng),
+        };
+
+        const pinCenter = [pinLng, pinLat];
         const zoom = chooseZoomForPlace(result, DEFAULT_DETAIL_LEVEL);
         const mapCenter = offsetCenterForPin(pinCenter, zoom, PIN_HORIZONTAL_OFFSET_PX, PIN_VERTICAL_OFFSET_PX);
 

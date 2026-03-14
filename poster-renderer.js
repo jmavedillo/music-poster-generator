@@ -51,6 +51,14 @@ async function collectPageDebugData({ html }) {
       mapFailed: window.__MAP_FAILED === true,
       mapError: typeof window.__MAP_ERROR === 'string' ? window.__MAP_ERROR : '',
       mapSteps: Array.isArray(window.__MAP_DEBUG) ? window.__MAP_DEBUG.map((item) => String(item)) : [],
+      mapResolved: window.__MAP_RESOLVED && typeof window.__MAP_RESOLVED === 'object'
+        ? {
+            lat: Number(window.__MAP_RESOLVED.lat),
+            lng: Number(window.__MAP_RESOLVED.lng),
+            googleMapsUrl: String(window.__MAP_RESOLVED.googleMapsUrl || ''),
+            googleMapsDirectionsUrl: String(window.__MAP_RESOLVED.googleMapsDirectionsUrl || ''),
+          }
+        : null,
     }));
 
     return debug;
@@ -110,6 +118,14 @@ async function renderPosterImage({ html, output = {} }) {
       mapFailed: window.__MAP_FAILED === true,
       mapError: typeof window.__MAP_ERROR === 'string' ? window.__MAP_ERROR : '',
       mapSteps: Array.isArray(window.__MAP_DEBUG) ? window.__MAP_DEBUG.map((item) => String(item)) : [],
+      mapResolved: window.__MAP_RESOLVED && typeof window.__MAP_RESOLVED === 'object'
+        ? {
+            lat: Number(window.__MAP_RESOLVED.lat),
+            lng: Number(window.__MAP_RESOLVED.lng),
+            googleMapsUrl: String(window.__MAP_RESOLVED.googleMapsUrl || ''),
+            googleMapsDirectionsUrl: String(window.__MAP_RESOLVED.googleMapsDirectionsUrl || ''),
+          }
+        : null,
     }));
 
     return {
