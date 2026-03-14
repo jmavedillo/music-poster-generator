@@ -242,14 +242,14 @@ function renderHtml(model) {
     }
 
     .overlay-card--place {
-      top: 44%;
-      left: 60%;
+      top: 42%;
+      left: 62%;
       width: min(40%, 240px);
     }
 
     .overlay-card--time {
-      left: 60%;
-      top: calc(44% + 76px);
+      left: 62%;
+      top: calc(42% + 74px);
       width: min(40%, 240px);
       padding-top: 6px;
       padding-bottom: 6px;
@@ -419,11 +419,7 @@ function renderHtml(model) {
       height: 24px;
     }
     .maplibregl-ctrl-attrib {
-      background: rgba(255, 255, 255, 0.84);
-      border-radius: 0;
-      margin: 0;
-      font-size: 9px;
-      color: #3a3a3a;
+      display: none !important;
     }
   </style>
 </head>
@@ -448,6 +444,7 @@ function renderHtml(model) {
     const DETAIL_LEVEL_ZOOM_OFFSET = { Close: -0.8, Closer: -0.2, 'Very Close': 0.4 };
     const CONTEXT_ZOOM_REDUCTION = 2.15;
     const PIN_VERTICAL_OFFSET_PX = 76;
+    const SHOW_ZOOM_CONTROL = false;
     const EXAMPLE_LOCATIONS = {
       'Madrid, Spain': { lat: 40.4168, lon: -3.7038, display_name: 'Madrid, Spain', addresstype: 'city' },
       'Puerta del Sol, Madrid': { lat: 40.4169, lon: -3.7035, display_name: 'Puerta del Sol, Madrid', addresstype: 'amenity' },
@@ -632,9 +629,14 @@ function renderHtml(model) {
 
       const point = map.project(pinCenter);
       const overlayRect = overlay.getBoundingClientRect();
-      const pinVisualTop = point.y - 66;
-      const placeTop = clamp(pinVisualTop + 2, 18, overlayRect.height - 120);
-      const placeLeft = clamp(point.x + 28, 26, overlayRect.width - 250);
+      const pinTop = point.y - 68;
+      const pinCenterY = pinTop + 34;
+      const sideGap = 18;
+      const placeWidth = placeCard ? placeCard.offsetWidth : Math.min(240, overlayRect.width * 0.4);
+      const placeHeight = placeCard ? placeCard.offsetHeight : 64;
+      const minLeft = point.x + 22 + sideGap;
+      const placeLeft = clamp(minLeft, 26, overlayRect.width - placeWidth - 16);
+      let placeTop = clamp(pinCenterY - (placeHeight / 2), 18, overlayRect.height - placeHeight - 18);
 
       if (placeCard) {
         placeCard.style.top = placeTop + 'px';
@@ -642,8 +644,21 @@ function renderHtml(model) {
       }
 
       if (timeCard) {
-        const placeHeight = placeCard ? placeCard.getBoundingClientRect().height : 58;
-        timeCard.style.top = placeTop + placeHeight + 12 + 'px';
+        const timeHeight = timeCard.offsetHeight || 52;
+        const gap = 12;
+        let timeTop = placeTop + placeHeight + gap;
+        const maxTimeTop = overlayRect.height - timeHeight - 18;
+
+        if (timeTop > maxTimeTop) {
+          const shiftUp = timeTop - maxTimeTop;
+          placeTop = clamp(placeTop - shiftUp, 18, overlayRect.height - placeHeight - 18);
+          if (placeCard) {
+            placeCard.style.top = placeTop + 'px';
+          }
+          timeTop = placeTop + placeHeight + gap;
+        }
+
+        timeCard.style.top = clamp(timeTop, 18, maxTimeTop) + 'px';
         timeCard.style.left = placeLeft + 'px';
       }
     }
@@ -728,11 +743,13 @@ function renderHtml(model) {
           style,
           center: mapCenter,
           zoom,
-          attributionControl: true,
+          attributionControl: false,
           interactive: false,
         });
 
-        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+        if (SHOW_ZOOM_CONTROL) {
+          map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+        }
 
         map.on('error', (event) => {
           const mapError = event?.error || new Error('Unknown MapLibre runtime error');
