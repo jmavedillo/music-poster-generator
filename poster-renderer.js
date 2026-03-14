@@ -32,6 +32,33 @@ function loadChromium() {
   throw error;
 }
 
+
+async function collectPageDebugData({ html }) {
+  if (!html || typeof html !== 'string') {
+    throw new Error('collectPageDebugData requires html as a non-empty string');
+  }
+
+  const chromiumBrowser = loadChromium();
+  const browser = await chromiumBrowser.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: POSTER_WIDTH, height: POSTER_HEIGHT } });
+    await page.setContent(html, { waitUntil: 'networkidle' });
+
+    await page.waitForFunction(() => window.__MAP_READY === true || window.__MAP_FAILED === true, { timeout: 12000 }).catch(() => null);
+
+    const debug = await page.evaluate(() => ({
+      mapReady: window.__MAP_READY === true,
+      mapFailed: window.__MAP_FAILED === true,
+      mapError: typeof window.__MAP_ERROR === 'string' ? window.__MAP_ERROR : '',
+      mapSteps: Array.isArray(window.__MAP_DEBUG) ? window.__MAP_DEBUG.map((item) => String(item)) : [],
+    }));
+
+    return debug;
+  } finally {
+    await browser.close();
+  }
+}
+
 async function renderPosterImage({ html, output = {} }) {
   if (!html || typeof html !== 'string') {
     throw new Error('renderPosterImage requires html as a non-empty string');
@@ -69,6 +96,8 @@ async function renderPosterImage({ html, output = {} }) {
       );
     });
 
+    await page.waitForFunction(() => window.__MAP_READY === true || window.__MAP_FAILED === true, { timeout: 12000 }).catch(() => null);
+
     const buffer = await page.screenshot({
       type: format,
       quality: quality ? Math.round(quality * 100) : undefined,
@@ -76,12 +105,20 @@ async function renderPosterImage({ html, output = {} }) {
       clip: { x: 0, y: 0, width: POSTER_WIDTH, height: POSTER_HEIGHT },
     });
 
+    const debug = await page.evaluate(() => ({
+      mapReady: window.__MAP_READY === true,
+      mapFailed: window.__MAP_FAILED === true,
+      mapError: typeof window.__MAP_ERROR === 'string' ? window.__MAP_ERROR : '',
+      mapSteps: Array.isArray(window.__MAP_DEBUG) ? window.__MAP_DEBUG.map((item) => String(item)) : [],
+    }));
+
     return {
       buffer,
       format,
       width,
       height,
       html,
+      debug,
     };
   } finally {
     await browser.close();
@@ -90,4 +127,5 @@ async function renderPosterImage({ html, output = {} }) {
 
 module.exports = {
   renderPosterImage,
+  collectPageDebugData,
 };
