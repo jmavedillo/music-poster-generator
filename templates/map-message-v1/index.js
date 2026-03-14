@@ -1,6 +1,27 @@
 const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml } = require('../shared');
 
 const FALLBACK_COVER_DATA_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ececec'/%3E%3Cstop offset='100%25' stop-color='%23d9d9d9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='12' fill='url(%23g)'/%3E%3Cpath d='M23 82l21-21 13 13 16-19 24 27H23z' fill='rgba(0,0,0,0.18)'/%3E%3Ccircle cx='42' cy='40' r='8' fill='rgba(0,0,0,0.2)'/%3E%3C/svg%3E";
+const INTRO_MAX_LENGTH = 56;
+const MAIN_MAX_LENGTH = 48;
+
+function clampText(value, maxLength) {
+  const text = normalizeText(value);
+  if (text.length <= maxLength) {
+    return text;
+  }
+
+  return `${text.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function getMessageSizeClass(length, thresholds, classes) {
+  for (let i = 0; i < thresholds.length; i += 1) {
+    if (length <= thresholds[i]) {
+      return classes[i];
+    }
+  }
+
+  return classes[classes.length - 1];
+}
 
 function normalizeOutput(output = {}) {
   const width = Number(output.width);
@@ -56,8 +77,8 @@ function normalizePayload(payload = {}) {
       timeText: normalizeText(time.timeText),
     },
     message: {
-      intro: normalizeText(message.intro),
-      main: normalizeText(message.main),
+      intro: clampText(message.intro, INTRO_MAX_LENGTH),
+      main: clampText(message.main, MAIN_MAX_LENGTH),
     },
     output: normalizeOutput(payload.output),
   };
@@ -98,7 +119,7 @@ function renderPlaceCard(model) {
   if (!model.showPlaceCard) return '';
 
   return `<section class="overlay-card overlay-card--place" id="place-card">
-    <p class="overlay-eyebrow">Place</p>
+    <p class="overlay-eyebrow">PLACE</p>
     ${model.place.title ? `<p class="overlay-primary" id="place-title">${escapeHtml(model.place.title)}</p>` : ''}
     ${model.place.subtitle ? `<p class="overlay-secondary" id="place-subtitle">${escapeHtml(model.place.subtitle)}</p>` : ''}
   </section>`;
@@ -107,19 +128,24 @@ function renderPlaceCard(model) {
 function renderTimeCard(model) {
   if (!model.showTimeCard) return '';
 
+  const whenParts = [model.time.dateText, model.time.timeText].filter(Boolean);
+  const whenText = whenParts.join(' • ');
+
   return `<section class="overlay-card overlay-card--time" id="time-card">
-    <p class="overlay-eyebrow">When</p>
-    ${model.time.dateText ? `<p class="overlay-secondary" id="time-date">${escapeHtml(model.time.dateText)}</p>` : ''}
-    ${model.time.timeText ? `<p class="overlay-primary overlay-time-value" id="time-value">${escapeHtml(model.time.timeText)}</p>` : ''}
+    <p class="overlay-eyebrow">WHEN</p>
+    ${whenText ? `<p class="overlay-primary overlay-time-line" id="time-value">${escapeHtml(whenText)}</p>` : ''}
   </section>`;
 }
 
 function renderMessageBand(model) {
   if (!model.showMessageBand) return '';
 
+  const heroClass = getMessageSizeClass(model.message.main.length, [18, 30, 40], ['message-strip--hero-xl', 'message-strip--hero-lg', 'message-strip--hero-md', 'message-strip--hero-sm']);
+  const supportClass = getMessageSizeClass(model.message.intro.length, [24, 40], ['message-strip--support-lg', 'message-strip--support-md', 'message-strip--support-sm']);
+
   return `<section class="message-strips" id="message-band">
-    ${model.showIntro ? `<p class="message-strip message-strip--support" id="message-band-support">${escapeHtml(model.message.intro)}</p>` : ''}
-    ${model.showMain ? `<p class="message-strip message-strip--hero" id="message-band-hero">${escapeHtml(model.message.main)}</p>` : ''}
+    ${model.showIntro ? `<p class="message-strip message-strip--support ${supportClass}" id="message-band-support">${escapeHtml(model.message.intro)}</p>` : ''}
+    ${model.showMain ? `<p class="message-strip message-strip--hero ${heroClass}" id="message-band-hero">${escapeHtml(model.message.main)}</p>` : ''}
   </section>`;
 }
 
@@ -207,10 +233,11 @@ function renderHtml(model) {
     .overlay-card--song {
       top: 10px;
       left: 10px;
+      right: 46px;
       grid-template-columns: auto 1fr;
       gap: 7px;
       align-items: center;
-      max-width: min(47%, 320px);
+      max-width: none;
       min-height: 52px;
     }
 
@@ -224,6 +251,8 @@ function renderHtml(model) {
       right: 10px;
       top: 54%;
       width: min(40%, 240px);
+      padding-top: 6px;
+      padding-bottom: 6px;
     }
 
     .overlay-song-cover {
@@ -287,10 +316,11 @@ function renderHtml(model) {
       text-overflow: ellipsis;
     }
 
-    .overlay-time-value {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 0.05em;
+    .overlay-time-line {
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.2;
+      letter-spacing: 0.02em;
     }
 
     .pin-marker {
@@ -334,33 +364,43 @@ function renderHtml(model) {
 
     .message-strip {
       margin: 0;
-      text-wrap: balance;
       text-transform: uppercase;
       background: #ffffff;
       border: none;
       box-shadow: none;
       width: fit-content;
-      max-width: min(calc(88% + 24px), 40ch);
+      max-width: min(calc(80% + 24px), 38ch);
       padding: 2px 12px 1px 36px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .message-strip--support {
-      font-size: 15px;
       line-height: 1.08;
       font-weight: 650;
       letter-spacing: 0.06em;
       color: #303030;
     }
 
+    .message-strip--support-lg { font-size: 15px; }
+    .message-strip--support-md { font-size: 14px; }
+    .message-strip--support-sm { font-size: 13px; }
+
     .message-strip--hero {
       font-family: 'Avenir Next Condensed', 'Franklin Gothic Heavy', 'Arial Narrow', 'Arial Black', 'Inter', sans-serif;
-      font-size: 60px;
       line-height: 0.82;
       font-weight: 900;
       letter-spacing: 0.02em;
       color: var(--accent-red);
       padding: 1px 14px 0 36px;
+      max-width: min(calc(74% + 24px), 26ch);
     }
+
+    .message-strip--hero-xl { font-size: 60px; }
+    .message-strip--hero-lg { font-size: 56px; }
+    .message-strip--hero-md { font-size: 52px; }
+    .message-strip--hero-sm { font-size: 48px; }
 
     .maplibregl-ctrl-top-right { top: 10px; right: 10px; }
     .maplibregl-ctrl-group {
