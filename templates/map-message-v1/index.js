@@ -2,7 +2,7 @@ const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml } = require('../shared');
 
 const FALLBACK_COVER_DATA_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ececec'/%3E%3Cstop offset='100%25' stop-color='%23d9d9d9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='12' fill='url(%23g)'/%3E%3Cpath d='M23 82l21-21 13 13 16-19 24 27H23z' fill='rgba(0,0,0,0.18)'/%3E%3Ccircle cx='42' cy='40' r='8' fill='rgba(0,0,0,0.2)'/%3E%3C/svg%3E";
 const INTRO_MAX_LENGTH = 56;
-const MAIN_MAX_LENGTH = 48;
+const MAIN_MAX_LENGTH = 86;
 
 function clampText(value, maxLength) {
   const text = normalizeText(value);
@@ -140,7 +140,7 @@ function renderTimeCard(model) {
 function renderMessageBand(model) {
   if (!model.showMessageBand) return '';
 
-  const heroClass = getMessageSizeClass(model.message.main.length, [18, 30, 40], ['message-strip--hero-xl', 'message-strip--hero-lg', 'message-strip--hero-md', 'message-strip--hero-sm']);
+  const heroClass = getMessageSizeClass(model.message.main.length, [20, 36, 54, 72], ['message-strip--hero-xl', 'message-strip--hero-lg', 'message-strip--hero-md', 'message-strip--hero-sm', 'message-strip--hero-xs']);
   const supportClass = getMessageSizeClass(model.message.intro.length, [24, 40], ['message-strip--support-lg', 'message-strip--support-md', 'message-strip--support-sm']);
 
   return `<section class="message-strips" id="message-band">
@@ -231,9 +231,9 @@ function renderHtml(model) {
     }
 
     .overlay-card--song {
-      top: 10px;
+      top: 15px;
       left: 10px;
-      right: 46px;
+      right: 56px;
       grid-template-columns: auto 1fr;
       gap: 7px;
       align-items: center;
@@ -242,14 +242,14 @@ function renderHtml(model) {
     }
 
     .overlay-card--place {
-      top: 30%;
-      right: 10px;
+      top: 44%;
+      left: 60%;
       width: min(40%, 240px);
     }
 
     .overlay-card--time {
-      right: 10px;
-      top: 54%;
+      left: 60%;
+      top: calc(44% + 76px);
       width: min(40%, 240px);
       padding-top: 6px;
       padding-bottom: 6px;
@@ -301,7 +301,6 @@ function renderHtml(model) {
       font-weight: 600;
       line-height: 1.22;
       color: #141414;
-      white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -311,7 +310,6 @@ function renderHtml(model) {
       font-size: 11px;
       line-height: 1.3;
       color: #3f3f3f;
-      white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -371,9 +369,7 @@ function renderHtml(model) {
       width: fit-content;
       max-width: min(calc(80% + 24px), 38ch);
       padding: 2px 12px 1px 36px;
-      white-space: nowrap;
       overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .message-strip--support {
@@ -389,20 +385,30 @@ function renderHtml(model) {
 
     .message-strip--hero {
       font-family: 'Avenir Next Condensed', 'Franklin Gothic Heavy', 'Arial Narrow', 'Arial Black', 'Inter', sans-serif;
-      line-height: 0.82;
+      line-height: 0.86;
       font-weight: 900;
       letter-spacing: 0.02em;
       color: var(--accent-red);
       padding: 1px 14px 0 36px;
-      max-width: min(calc(74% + 24px), 26ch);
+      max-width: min(calc(76% + 24px), 30ch);
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
     }
 
     .message-strip--hero-xl { font-size: 60px; }
-    .message-strip--hero-lg { font-size: 56px; }
-    .message-strip--hero-md { font-size: 52px; }
-    .message-strip--hero-sm { font-size: 48px; }
+    .message-strip--hero-lg { font-size: 58px; }
+    .message-strip--hero-md { font-size: 55px; }
+    .message-strip--hero-sm { font-size: 52px; }
+    .message-strip--hero-xs { font-size: 48px; }
 
     .maplibregl-ctrl-top-right { top: 10px; right: 10px; }
+    .maplibregl-ctrl-bottom-right {
+      right: 8px;
+      top: 72px;
+      bottom: auto;
+    }
     .maplibregl-ctrl-group {
       border-radius: 2px;
       border: 1px solid rgba(22, 22, 22, 0.55);
@@ -415,7 +421,7 @@ function renderHtml(model) {
     .maplibregl-ctrl-attrib {
       background: rgba(255, 255, 255, 0.84);
       border-radius: 0;
-      margin: 0 6px 6px 0;
+      margin: 0;
       font-size: 9px;
       color: #3a3a3a;
     }
@@ -614,6 +620,62 @@ function renderHtml(model) {
       return [lng, lat - (pixelOffsetY * latPerPixel)];
     }
 
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function updateInfoCardsLayout(map, pinCenter) {
+      const overlay = document.querySelector('.communication-overlay');
+      const placeCard = document.getElementById('place-card');
+      const timeCard = document.getElementById('time-card');
+      if (!overlay || (!placeCard && !timeCard)) return;
+
+      const point = map.project(pinCenter);
+      const overlayRect = overlay.getBoundingClientRect();
+      const pinVisualTop = point.y - 66;
+      const placeTop = clamp(pinVisualTop + 2, 18, overlayRect.height - 120);
+      const placeLeft = clamp(point.x + 28, 26, overlayRect.width - 250);
+
+      if (placeCard) {
+        placeCard.style.top = placeTop + 'px';
+        placeCard.style.left = placeLeft + 'px';
+      }
+
+      if (timeCard) {
+        const placeHeight = placeCard ? placeCard.getBoundingClientRect().height : 58;
+        timeCard.style.top = placeTop + placeHeight + 12 + 'px';
+        timeCard.style.left = placeLeft + 'px';
+      }
+    }
+
+    function derivePlaceLinesClient(result) {
+      if (!result || typeof result !== 'object') return { title: '', subtitle: '' };
+      const address = result.address && typeof result.address === 'object' ? result.address : {};
+      const title = [address.attraction, address.amenity, address.building, address.road, address.pedestrian, address.neighbourhood, result.name]
+        .find((value) => String(value || '').trim().length > 0) || '';
+      const broad = [address.suburb, address.city_district, address.city, address.town, address.village, address.county, address.state, address.country]
+        .filter((value) => String(value || '').trim().length > 0)
+        .slice(0, 2)
+        .join(', ');
+      return { title: String(title).trim(), subtitle: String(broad).trim() };
+    }
+
+    function hydratePlaceTextFromGeocode(result) {
+      const placeTitle = document.getElementById('place-title');
+      const placeSubtitle = document.getElementById('place-subtitle');
+      if (!placeTitle && !placeSubtitle) return;
+
+      const geocoded = derivePlaceLinesClient(result);
+
+      if (placeTitle && !placeTitle.textContent.trim() && geocoded.title) {
+        placeTitle.textContent = geocoded.title;
+      }
+
+      if (placeSubtitle && !placeSubtitle.textContent.trim() && geocoded.subtitle) {
+        placeSubtitle.textContent = geocoded.subtitle;
+      }
+    }
+
     async function geocodePlace(query) {
       if (EXAMPLE_LOCATIONS[query]) return EXAMPLE_LOCATIONS[query];
 
@@ -683,6 +745,10 @@ function renderHtml(model) {
           markerEl.innerHTML = '<div class="pin-marker__inner" aria-hidden="true"></div>';
           new maplibregl.Marker({ element: markerEl, anchor: 'bottom' }).setLngLat(pinCenter).addTo(map);
         }
+
+        hydratePlaceTextFromGeocode(result);
+        map.on('render', () => updateInfoCardsLayout(map, pinCenter));
+        updateInfoCardsLayout(map, pinCenter);
 
         phase = 'awaiting map idle';
         map.once('idle', () => {
