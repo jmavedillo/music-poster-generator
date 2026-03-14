@@ -62,6 +62,11 @@ function normalizePayload(payload = {}) {
     output: normalizeOutput(payload.output),
   };
 
+  if (!hasObjectContent(model.place, ['title', 'subtitle']) && hasContent(model.mapQuery)) {
+    model.place.title = model.mapQuery;
+    model.place.subtitle = '';
+  }
+
   model.showSongCard = hasObjectContent(model.song, ['title', 'artist', 'coverUrl']);
   model.showPlaceCard = hasObjectContent(model.place, ['title', 'subtitle']);
   model.showTimeCard = hasObjectContent(model.time, ['dateText', 'timeText']);
@@ -379,43 +384,61 @@ function renderHtml(model) {
     const mapQuery = ${JSON.stringify(mapQuery)};
     const markerType = ${JSON.stringify(model.marker.type)};
 
-    function appendDebugMessage(message, level = 'log') {
-      const existing = document.getElementById('map-debug-panel');
-      const panel = existing || (() => {
-        const el = document.createElement('pre');
-        el.id = 'map-debug-panel';
-        el.style.position = 'absolute';
-        el.style.left = '10px';
-        el.style.right = '10px';
-        el.style.bottom = '10px';
-        el.style.maxHeight = '38%';
-        el.style.overflow = 'auto';
-        el.style.padding = '10px 12px';
-        el.style.margin = '0';
-        el.style.zIndex = '30';
-        el.style.font = '12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
-        el.style.whiteSpace = 'pre-wrap';
-        el.style.background = 'rgba(255, 255, 255, 0.96)';
-        el.style.border = '1px solid rgba(130, 35, 35, 0.6)';
-        el.style.color = '#651515';
-        document.querySelector('.poster-frame')?.appendChild(el);
-        return el;
-      })();
-
-      const now = new Date().toISOString().slice(11, 23);
-      panel.textContent += '[' + now + '] [' + level.toUpperCase() + '] ' + message + '\n';
-    }
+    window.__MAP_READY = false;
+    window.__MAP_FAILED = false;
+    window.__MAP_ERROR = '';
+    window.__MAP_DEBUG = [];
 
     function logStep(step, details) {
       const message = details ? step + ': ' + details : step;
+      window.__MAP_DEBUG.push(message);
       console.info('[map_message_v1] ' + message);
+    }
+
+    function ensureDebugPanel() {
+      const existing = document.getElementById('map-debug-panel');
+      if (existing) return existing;
+
+      const el = document.createElement('pre');
+      el.id = 'map-debug-panel';
+      el.style.position = 'absolute';
+      el.style.left = '10px';
+      el.style.right = '10px';
+      el.style.bottom = '10px';
+      el.style.maxHeight = '38%';
+      el.style.overflow = 'auto';
+      el.style.padding = '10px 12px';
+      el.style.margin = '0';
+      el.style.zIndex = '30';
+      el.style.font = '12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+      el.style.whiteSpace = 'pre-wrap';
+      el.style.background = 'rgba(255, 255, 255, 0.96)';
+      el.style.border = '1px solid rgba(130, 35, 35, 0.6)';
+      el.style.color = '#651515';
+      document.querySelector('.poster-frame')?.appendChild(el);
+      return el;
+    }
+
+    function renderDebugPanel(phase, detail) {
+      const panel = ensureDebugPanel();
+      const lines = [
+        'MAP DEBUG (temporary)',
+        'phase: ' + phase,
+        'error: ' + detail,
+        'steps:',
+        ...(window.__MAP_DEBUG || []).map((step, index) => '  ' + (index + 1) + '. ' + step),
+      ];
+      panel.textContent = lines.join('\n');
     }
 
     function reportBootError(error, phase) {
       const detail = error instanceof Error ? error.name + ': ' + error.message : String(error);
-      const stack = error && error.stack ? '\n' + error.stack : '';
+      const readable = 'map boot failed: ' + detail;
+      window.__MAP_FAILED = true;
+      window.__MAP_ERROR = readable;
+      logStep(readable);
       console.error('[map_message_v1] boot failed at ' + phase, error);
-      appendDebugMessage('Map boot failed at ' + phase + ' -> ' + detail + stack, 'error');
+      renderDebugPanel(phase, detail);
     }
 
     function classifyRoadWeight(layerId) {
@@ -528,21 +551,21 @@ function renderHtml(model) {
       endpoint.searchParams.set('limit', '1');
       endpoint.searchParams.set('addressdetails', '1');
 
-      logStep('before geocoding', endpoint.toString());
+      logStep('starting geocoding', endpoint.toString());
       const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error('Geocoding failed');
       const results = await response.json();
       if (!Array.isArray(results) || !results.length) throw new Error('No place found');
-      logStep('after geocoding', JSON.stringify({ lat: results[0]?.lat, lon: results[0]?.lon, type: results[0]?.addresstype || results[0]?.type }));
+      logStep('geocoding success', JSON.stringify({ lat: results[0]?.lat, lon: results[0]?.lon, type: results[0]?.addresstype || results[0]?.type }));
       return results[0];
     }
 
     async function loadMonochromeEditorialStyle() {
-      logStep('before style fetch', BASE_STYLE_URL);
+      logStep('starting style fetch', BASE_STYLE_URL);
       const response = await fetch(BASE_STYLE_URL);
       if (!response.ok) throw new Error('Style fetch failed');
       const style = await response.json();
-      logStep('after style fetch', 'layers=' + (Array.isArray(style.layers) ? style.layers.length : 0));
+      logStep('style fetch success', 'layers=' + (Array.isArray(style.layers) ? style.layers.length : 0));
       return { ...style, layers: (style.layers || []).map(restyleLayer) };
     }
 
@@ -553,6 +576,7 @@ function renderHtml(model) {
         if (!window.maplibregl || typeof window.maplibregl.Map !== 'function') {
           throw new Error('MapLibre failed to load from CDN script');
         }
+        logStep('maplibre loaded');
 
         phase = 'geocoding';
         const result = await geocodePlace(mapQuery || 'Puerta del Sol, Madrid');
@@ -563,7 +587,7 @@ function renderHtml(model) {
         const style = await loadMonochromeEditorialStyle();
 
         phase = 'map creation';
-        logStep('before map creation', JSON.stringify({ center, zoom }));
+        logStep('creating map', JSON.stringify({ center, zoom }));
         const map = new maplibregl.Map({
           container: 'map',
           style,
@@ -572,7 +596,6 @@ function renderHtml(model) {
           attributionControl: false,
           interactive: false,
         });
-        logStep('after map creation');
 
         map.on('error', (event) => {
           const mapError = event?.error || new Error('Unknown MapLibre runtime error');
@@ -588,12 +611,11 @@ function renderHtml(model) {
 
         phase = 'awaiting map idle';
         map.once('idle', () => {
-          logStep('after map idle');
+          logStep('map idle');
           window.__MAP_READY = true;
         });
       } catch (error) {
         reportBootError(error, phase);
-        window.__MAP_READY = true;
       }
     }
 
