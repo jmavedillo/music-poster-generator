@@ -115,11 +115,9 @@ function renderTimeCard(model) {
 function renderMessageBand(model) {
   if (!model.showMessageBand) return '';
 
-  return `<section class="message-band" id="message-band">
-    <div class="message-band__copy">
-      ${model.showIntro ? `<p class="message-band__support" id="message-band-support">${escapeHtml(model.message.intro)}</p>` : ''}
-      ${model.showMain ? `<p class="message-band__hero" id="message-band-hero">${escapeHtml(model.message.main)}</p>` : ''}
-    </div>
+  return `<section class="message-strips" id="message-band">
+    ${model.showIntro ? `<p class="message-strip message-strip--support" id="message-band-support">${escapeHtml(model.message.intro)}</p>` : ''}
+    ${model.showMain ? `<p class="message-strip message-strip--hero" id="message-band-hero">${escapeHtml(model.message.main)}</p>` : ''}
   </section>`;
 }
 
@@ -140,7 +138,7 @@ function renderHtml(model) {
       --map-border: #d9d9d3;
       --text-main: #131313;
       --text-muted: #4c4c4c;
-      --accent-red: #d7747d;
+      --accent-red: #d72638;
     }
 
     * { box-sizing: border-box; }
@@ -160,19 +158,18 @@ function renderHtml(model) {
       background: var(--poster-bg);
       border: 1px solid var(--poster-border);
       box-shadow: 0 12px 28px rgba(24, 24, 24, 0.2), 0 2px 7px rgba(24, 24, 24, 0.14);
-      display: grid;
-      grid-template-rows: minmax(0, 1fr) auto;
+      display: block;
       padding: 14px;
-      gap: 8px;
       overflow: hidden;
     }
 
     .poster-frame {
       position: relative;
       border: 1px solid var(--map-border);
-      padding: 6px;
+      padding: 7px;
       background: #f5f5f2;
       min-height: 0;
+      height: 100%;
     }
 
     .poster-map {
@@ -184,7 +181,7 @@ function renderHtml(model) {
 
     .communication-overlay {
       position: absolute;
-      inset: 6px;
+      inset: 7px;
       z-index: 4;
       pointer-events: none;
     }
@@ -192,25 +189,26 @@ function renderHtml(model) {
     .overlay-card,
     .overlay-message {
       position: absolute;
-      background: rgba(250, 250, 247, 0.94);
-      border: 1.5px solid rgba(20, 20, 20, 0.62);
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(15, 15, 15, 0.15);
+      background: rgba(252, 252, 249, 0.95);
+      border: 1px solid rgba(12, 12, 12, 0.75);
+      border-radius: 3px;
+      box-shadow: 0 1px 0 rgba(15, 15, 15, 0.18);
     }
 
     .overlay-card {
-      padding: 8px 9px;
+      padding: 7px 8px;
       display: grid;
       gap: 2px;
-      max-width: min(44%, 260px);
+      max-width: min(45%, 280px);
     }
 
     .overlay-card--song {
       top: 10px;
       left: 10px;
       grid-template-columns: auto 1fr;
-      gap: 8px;
+      gap: 7px;
       align-items: center;
+      max-width: min(52%, 340px);
     }
 
     .overlay-card--place {
@@ -226,9 +224,9 @@ function renderHtml(model) {
     }
 
     .overlay-song-cover {
-      width: 42px;
-      height: 42px;
-      border-radius: 8px;
+      width: 38px;
+      height: 38px;
+      border-radius: 2px;
       object-fit: cover;
       object-position: center;
       border: 1px solid rgba(0, 0, 0, 0.1);
@@ -242,17 +240,17 @@ function renderHtml(model) {
 
     .overlay-eyebrow {
       margin: 0;
-      font-size: 9px;
-      letter-spacing: 0.14em;
+      font-size: 8px;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
       color: #5a5a5a;
     }
 
     .overlay-primary {
       margin: 0;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      line-height: 1.3;
+      line-height: 1.22;
       color: #141414;
       white-space: nowrap;
       overflow: hidden;
@@ -304,54 +302,62 @@ function renderHtml(model) {
       left: 13px;
     }
 
-    .message-band {
-      width: 100%;
-      border: 1px solid #cecec9;
-      background: #f4f4f1;
+    .message-strips {
+      position: absolute;
+      left: 16px;
+      bottom: 20px;
+      z-index: 5;
       display: grid;
-      grid-template-columns: 1fr;
-      align-items: start;
-      gap: 2px;
-      padding: 4px 12px 3px;
-      min-height: 96px;
+      gap: 5px;
+      justify-items: start;
     }
 
-    .message-band__copy {
-      text-align: left;
-      display: grid;
-      align-content: start;
-      gap: 2px;
-      max-width: 34ch;
-    }
-
-    .message-band__support,
-    .message-band__hero {
+    .message-strip {
       margin: 0;
       text-wrap: balance;
       text-transform: uppercase;
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid rgba(20, 20, 20, 0.82);
+      box-shadow: 0 1px 0 rgba(20, 20, 20, 0.16);
+      width: fit-content;
+      max-width: min(88%, 37ch);
+      padding: 2px 10px 1px;
     }
 
-    .message-band__support {
-      font-size: 17px;
+    .message-strip--support {
+      font-size: 15px;
       line-height: 1.08;
       font-weight: 650;
-      letter-spacing: 0.07em;
-      color: #434343;
+      letter-spacing: 0.06em;
+      color: #303030;
     }
 
-    .message-band__hero {
+    .message-strip--hero {
       font-family: 'Avenir Next Condensed', 'Franklin Gothic Heavy', 'Arial Narrow', 'Arial Black', 'Inter', sans-serif;
-      font-size: 51px;
-      line-height: 0.84;
+      font-size: 60px;
+      line-height: 0.82;
       font-weight: 900;
       letter-spacing: 0.02em;
       color: var(--accent-red);
+      padding: 1px 12px 0;
     }
 
-    .maplibregl-control-container,
-    .maplibregl-ctrl-attrib,
-    .maplibregl-ctrl-logo {
-      display: none !important;
+    .maplibregl-ctrl-top-right { top: 10px; right: 10px; }
+    .maplibregl-ctrl-group {
+      border-radius: 2px;
+      border: 1px solid rgba(22, 22, 22, 0.55);
+      box-shadow: none;
+    }
+    .maplibregl-ctrl button {
+      width: 24px;
+      height: 24px;
+    }
+    .maplibregl-ctrl-attrib {
+      background: rgba(255, 255, 255, 0.84);
+      border-radius: 0;
+      margin: 0 6px 6px 0;
+      font-size: 9px;
+      color: #3a3a3a;
     }
   </style>
 </head>
@@ -363,10 +369,9 @@ function renderHtml(model) {
         ${renderSongCard(model)}
         ${renderPlaceCard(model)}
         ${renderTimeCard(model)}
+        ${renderMessageBand(model)}
       </section>
     </section>
-
-    ${renderMessageBand(model)}
   </article>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
@@ -374,7 +379,9 @@ function renderHtml(model) {
 
     const BASE_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
     const DEFAULT_DETAIL_LEVEL = 'Closer';
-    const DETAIL_LEVEL_ZOOM_OFFSET = { Close: -0.35, Closer: 0.45, 'Very Close': 1.1 };
+    const DETAIL_LEVEL_ZOOM_OFFSET = { Close: -0.8, Closer: -0.2, 'Very Close': 0.4 };
+    const CONTEXT_ZOOM_REDUCTION = 1.15;
+    const PIN_VERTICAL_OFFSET_PX = 124;
     const EXAMPLE_LOCATIONS = {
       'Madrid, Spain': { lat: 40.4168, lon: -3.7038, display_name: 'Madrid, Spain', addresstype: 'city' },
       'Puerta del Sol, Madrid': { lat: 40.4169, lon: -3.7035, display_name: 'Puerta del Sol, Madrid', addresstype: 'amenity' },
@@ -539,7 +546,12 @@ function renderHtml(model) {
       }
 
       const offset = DETAIL_LEVEL_ZOOM_OFFSET[detailLevel] ?? DETAIL_LEVEL_ZOOM_OFFSET[DEFAULT_DETAIL_LEVEL];
-      return Math.max(13, Math.min(19, baseZoom + offset));
+      return Math.max(11.6, Math.min(18.2, baseZoom + offset - CONTEXT_ZOOM_REDUCTION));
+    }
+
+    function offsetCenterForPin([lng, lat], zoom, pixelOffsetY) {
+      const latPerPixel = 360 / (Math.pow(2, zoom) * 512);
+      return [lng, lat - (pixelOffsetY * latPerPixel)];
     }
 
     async function geocodePlace(query) {
@@ -580,22 +592,25 @@ function renderHtml(model) {
 
         phase = 'geocoding';
         const result = await geocodePlace(mapQuery || 'Puerta del Sol, Madrid');
-        const center = [Number(result.lon), Number(result.lat)];
+        const pinCenter = [Number(result.lon), Number(result.lat)];
         const zoom = chooseZoomForPlace(result, DEFAULT_DETAIL_LEVEL);
+        const mapCenter = offsetCenterForPin(pinCenter, zoom, PIN_VERTICAL_OFFSET_PX);
 
         phase = 'style fetch';
         const style = await loadMonochromeEditorialStyle();
 
         phase = 'map creation';
-        logStep('creating map', JSON.stringify({ center, zoom }));
+        logStep('creating map', JSON.stringify({ center: mapCenter, pinCenter, zoom }));
         const map = new maplibregl.Map({
           container: 'map',
           style,
-          center,
+          center: mapCenter,
           zoom,
-          attributionControl: false,
+          attributionControl: true,
           interactive: false,
         });
+
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
 
         map.on('error', (event) => {
           const mapError = event?.error || new Error('Unknown MapLibre runtime error');
@@ -606,7 +621,7 @@ function renderHtml(model) {
           const markerEl = document.createElement('div');
           markerEl.className = 'pin-marker';
           markerEl.innerHTML = '<div class="pin-marker__inner" aria-hidden="true"></div>';
-          new maplibregl.Marker({ element: markerEl, anchor: 'bottom' }).setLngLat(center).addTo(map);
+          new maplibregl.Marker({ element: markerEl, anchor: 'bottom' }).setLngLat(pinCenter).addTo(map);
         }
 
         phase = 'awaiting map idle';
