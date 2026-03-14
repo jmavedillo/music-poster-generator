@@ -177,6 +177,8 @@ function renderMessageBand(model) {
 
 function renderHtml(model) {
   const mapQuery = model.mapQuery || 'Puerta del Sol, Madrid';
+  const isStyle2 = model.styleVariant === 'style2';
+  const accentColor = isStyle2 ? '#f29a9f' : '#d72638';
 
   return `<!doctype html>
 <html>
@@ -192,7 +194,7 @@ function renderHtml(model) {
       --map-border: #d9d9d3;
       --text-main: #131313;
       --text-muted: #4c4c4c;
-      --accent-red: #d72638;
+      --accent-red: ${accentColor};
     }
 
     * { box-sizing: border-box; }
@@ -624,8 +626,105 @@ function renderHtml(model) {
     }
 
     function restyleLayerStyle2(layer) {
-      // Placeholder branch: currently keeps style1 visuals until style2 design is defined.
-      return restyleLayerStyle1(layer);
+      const id = layer.id || '';
+
+      if (layer.type === 'symbol' || layer.type === 'circle' || layer.type === 'heatmap' || layer.type === 'fill-extrusion') {
+        return { ...layer, layout: { ...(layer.layout || {}), visibility: 'none' } };
+      }
+
+      if (layer.type === 'background') {
+        return { ...layer, paint: { ...(layer.paint || {}), 'background-color': '#08192f' } };
+      }
+
+      if (layer.type === 'fill') {
+        if (/(water|ocean|river|lake|reservoir|basin)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'fill-color': '#0d2f4d',
+              'fill-opacity': 0.92,
+            },
+          };
+        }
+
+        if (/(building|block|residential|commercial|industrial|construction)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'fill-color': '#9ec8de',
+              'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.48, 13, 0.66, 16, 0.8],
+            },
+          };
+        }
+
+        if (/(park|grass|wood|forest|landcover|landuse|cemetery|pitch|recreation)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'fill-color': '#123857',
+              'fill-opacity': 0.62,
+            },
+          };
+        }
+
+        return {
+          ...layer,
+          paint: {
+            ...(layer.paint || {}),
+            'fill-color': '#102b46',
+            'fill-opacity': 0.74,
+          },
+        };
+      }
+
+      if (layer.type === 'line') {
+        if (/(boundary|admin|border)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'line-color': '#5ca0c9',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.12, 12, 0.38, 16, 0.62],
+              'line-opacity': 0.38,
+            },
+          };
+        }
+
+        if (/(bridge|tunnel|rail|transit|ferry)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'line-color': '#6db6dc',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.08, 12, 0.3, 16, 0.62],
+              'line-opacity': 0.28,
+            },
+          };
+        }
+
+        const roadWeight = classifyRoadWeight(id);
+        const roadPalette = {
+          major: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.08, 12, 0.3, 15, 0.58, 17, 0.85], opacity: 0.26 },
+          secondary: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.05, 12, 0.2, 15, 0.42, 17, 0.66], opacity: 0.2 },
+          minor: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.02, 12, 0.12, 15, 0.26, 17, 0.42], opacity: 0.14 },
+        };
+
+        const pick = roadPalette[roadWeight];
+        return {
+          ...layer,
+          paint: {
+            ...(layer.paint || {}),
+            'line-color': '#8bc6e0',
+            'line-width': pick.width,
+            'line-opacity': pick.opacity,
+          },
+        };
+      }
+
+      return layer;
     }
 
     function restyleLayerStyle3(layer) {
