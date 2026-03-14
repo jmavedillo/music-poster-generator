@@ -118,10 +118,13 @@ function renderSongCard(model) {
 function renderPlaceCard(model) {
   if (!model.showPlaceCard) return '';
 
+  const placeTitle = model.place.title || '';
+  const placeSubtitle = model.place.subtitle || '';
+
   return `<section class="overlay-card overlay-card--place" id="place-card">
     <p class="overlay-eyebrow">PLACE</p>
-    ${model.place.title ? `<p class="overlay-primary" id="place-title">${escapeHtml(model.place.title)}</p>` : ''}
-    ${model.place.subtitle ? `<p class="overlay-secondary" id="place-subtitle">${escapeHtml(model.place.subtitle)}</p>` : ''}
+    <p class="overlay-primary" id="place-title">${escapeHtml(placeTitle)}</p>
+    <p class="overlay-secondary overlay-secondary--place" id="place-subtitle">${escapeHtml(placeSubtitle)}</p>
   </section>`;
 }
 
@@ -233,7 +236,7 @@ function renderHtml(model) {
     .overlay-card--song {
       top: 15px;
       left: 10px;
-      right: 56px;
+      right: 10px;
       grid-template-columns: auto 1fr;
       gap: 7px;
       align-items: center;
@@ -312,6 +315,10 @@ function renderHtml(model) {
       color: #3f3f3f;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .overlay-secondary--place {
+      min-height: 1.3em;
     }
 
     .overlay-time-line {
@@ -444,6 +451,7 @@ function renderHtml(model) {
     const DETAIL_LEVEL_ZOOM_OFFSET = { Close: -0.8, Closer: -0.2, 'Very Close': 0.4 };
     const CONTEXT_ZOOM_REDUCTION = 2.15;
     const PIN_VERTICAL_OFFSET_PX = 76;
+    const PIN_HORIZONTAL_OFFSET_PX = 72;
     const SHOW_ZOOM_CONTROL = false;
     const EXAMPLE_LOCATIONS = {
       'Madrid, Spain': { lat: 40.4168, lon: -3.7038, display_name: 'Madrid, Spain', addresstype: 'city' },
@@ -612,9 +620,11 @@ function renderHtml(model) {
       return Math.max(11.6, Math.min(18.2, baseZoom + offset - CONTEXT_ZOOM_REDUCTION));
     }
 
-    function offsetCenterForPin([lng, lat], zoom, pixelOffsetY) {
+    function offsetCenterForPin([lng, lat], zoom, pixelOffsetX, pixelOffsetY) {
+      const worldSize = Math.pow(2, zoom) * 512;
+      const lonPerPixel = 360 / worldSize;
       const latPerPixel = 360 / (Math.pow(2, zoom) * 512);
-      return [lng, lat - (pixelOffsetY * latPerPixel)];
+      return [lng + (pixelOffsetX * lonPerPixel), lat - (pixelOffsetY * latPerPixel)];
     }
 
     function clamp(value, min, max) {
@@ -682,11 +692,14 @@ function renderHtml(model) {
 
       const geocoded = derivePlaceLinesClient(result);
 
-      if (placeTitle && !placeTitle.textContent.trim() && geocoded.title) {
+      const currentTitle = placeTitle ? placeTitle.textContent.trim() : '';
+      const canUpdateTitle = !currentTitle || currentTitle.toLowerCase() === String(mapQuery || '').trim().toLowerCase();
+
+      if (placeTitle && geocoded.title && canUpdateTitle) {
         placeTitle.textContent = geocoded.title;
       }
 
-      if (placeSubtitle && !placeSubtitle.textContent.trim() && geocoded.subtitle) {
+      if (placeSubtitle && geocoded.subtitle) {
         placeSubtitle.textContent = geocoded.subtitle;
       }
     }
@@ -731,7 +744,7 @@ function renderHtml(model) {
         const result = await geocodePlace(mapQuery || 'Puerta del Sol, Madrid');
         const pinCenter = [Number(result.lon), Number(result.lat)];
         const zoom = chooseZoomForPlace(result, DEFAULT_DETAIL_LEVEL);
-        const mapCenter = offsetCenterForPin(pinCenter, zoom, PIN_VERTICAL_OFFSET_PX);
+        const mapCenter = offsetCenterForPin(pinCenter, zoom, PIN_HORIZONTAL_OFFSET_PX, PIN_VERTICAL_OFFSET_PX);
 
         phase = 'style fetch';
         const style = await loadMonochromeEditorialStyle();
