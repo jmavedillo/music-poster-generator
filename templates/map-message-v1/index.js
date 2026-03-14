@@ -648,13 +648,13 @@ function renderHtml(model) {
           };
         }
 
-        if (/(building|block|residential|commercial|industrial|construction)/i.test(id)) {
+        if (/(building|building-part|structure|footprint)/i.test(id)) {
           return {
             ...layer,
             paint: {
               ...(layer.paint || {}),
               'fill-color': '#9ec8de',
-              'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.48, 13, 0.66, 16, 0.8],
+              'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.32, 13, 0.52, 16, 0.72],
             },
           };
         }
@@ -665,7 +665,18 @@ function renderHtml(model) {
             paint: {
               ...(layer.paint || {}),
               'fill-color': '#123857',
-              'fill-opacity': 0.62,
+              'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.04, 13, 0.1, 16, 0.16],
+            },
+          };
+        }
+
+        if (/(residential|commercial|industrial|construction|neighbourhood|neighborhood)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'fill-color': '#123857',
+              'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.03, 13, 0.08, 16, 0.12],
             },
           };
         }
@@ -675,7 +686,7 @@ function renderHtml(model) {
           paint: {
             ...(layer.paint || {}),
             'fill-color': '#102b46',
-            'fill-opacity': 0.74,
+            'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.03, 13, 0.08, 16, 0.12],
           },
         };
       }
