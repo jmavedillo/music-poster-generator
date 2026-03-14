@@ -364,8 +364,8 @@ function renderHtml(model) {
     ${renderMessageBand(model)}
   </article>
 
-  <script type="module">
-    import maplibregl from 'https://esm.sh/maplibre-gl@4.7.1';
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script>
 
     const BASE_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
     const DEFAULT_DETAIL_LEVEL = 'Closer';
@@ -378,6 +378,45 @@ function renderHtml(model) {
 
     const mapQuery = ${JSON.stringify(mapQuery)};
     const markerType = ${JSON.stringify(model.marker.type)};
+
+    function appendDebugMessage(message, level = 'log') {
+      const existing = document.getElementById('map-debug-panel');
+      const panel = existing || (() => {
+        const el = document.createElement('pre');
+        el.id = 'map-debug-panel';
+        el.style.position = 'absolute';
+        el.style.left = '10px';
+        el.style.right = '10px';
+        el.style.bottom = '10px';
+        el.style.maxHeight = '38%';
+        el.style.overflow = 'auto';
+        el.style.padding = '10px 12px';
+        el.style.margin = '0';
+        el.style.zIndex = '30';
+        el.style.font = '12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
+        el.style.whiteSpace = 'pre-wrap';
+        el.style.background = 'rgba(255, 255, 255, 0.96)';
+        el.style.border = '1px solid rgba(130, 35, 35, 0.6)';
+        el.style.color = '#651515';
+        document.querySelector('.poster-frame')?.appendChild(el);
+        return el;
+      })();
+
+      const now = new Date().toISOString().slice(11, 23);
+      panel.textContent += '[' + now + '] [' + level.toUpperCase() + '] ' + message + '\n';
+    }
+
+    function logStep(step, details) {
+      const message = details ? step + ': ' + details : step;
+      console.info('[map_message_v1] ' + message);
+    }
+
+    function reportBootError(error, phase) {
+      const detail = error instanceof Error ? error.name + ': ' + error.message : String(error);
+      const stack = error && error.stack ? '\n' + error.stack : '';
+      console.error('[map_message_v1] boot failed at ' + phase, error);
+      appendDebugMessage('Map boot failed at ' + phase + ' -> ' + detail + stack, 'error');
+    }
 
     function classifyRoadWeight(layerId) {
       if (/(motorway|trunk|primary|highway|arterial|major)/i.test(layerId)) return 'major';
@@ -489,33 +528,55 @@ function renderHtml(model) {
       endpoint.searchParams.set('limit', '1');
       endpoint.searchParams.set('addressdetails', '1');
 
+      logStep('before geocoding', endpoint.toString());
       const response = await fetch(endpoint, { headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error('Geocoding failed');
       const results = await response.json();
       if (!Array.isArray(results) || !results.length) throw new Error('No place found');
+      logStep('after geocoding', JSON.stringify({ lat: results[0]?.lat, lon: results[0]?.lon, type: results[0]?.addresstype || results[0]?.type }));
       return results[0];
     }
 
     async function loadMonochromeEditorialStyle() {
+      logStep('before style fetch', BASE_STYLE_URL);
       const response = await fetch(BASE_STYLE_URL);
       if (!response.ok) throw new Error('Style fetch failed');
       const style = await response.json();
+      logStep('after style fetch', 'layers=' + (Array.isArray(style.layers) ? style.layers.length : 0));
       return { ...style, layers: (style.layers || []).map(restyleLayer) };
     }
 
     async function boot() {
+      let phase = 'init';
       try {
+        phase = 'maplibre import check';
+        if (!window.maplibregl || typeof window.maplibregl.Map !== 'function') {
+          throw new Error('MapLibre failed to load from CDN script');
+        }
+
+        phase = 'geocoding';
         const result = await geocodePlace(mapQuery || 'Puerta del Sol, Madrid');
         const center = [Number(result.lon), Number(result.lat)];
         const zoom = chooseZoomForPlace(result, DEFAULT_DETAIL_LEVEL);
 
+        phase = 'style fetch';
+        const style = await loadMonochromeEditorialStyle();
+
+        phase = 'map creation';
+        logStep('before map creation', JSON.stringify({ center, zoom }));
         const map = new maplibregl.Map({
           container: 'map',
-          style: await loadMonochromeEditorialStyle(),
+          style,
           center,
           zoom,
           attributionControl: false,
           interactive: false,
+        });
+        logStep('after map creation');
+
+        map.on('error', (event) => {
+          const mapError = event?.error || new Error('Unknown MapLibre runtime error');
+          reportBootError(mapError, 'map runtime');
         });
 
         if (markerType === 'pin') {
@@ -525,8 +586,13 @@ function renderHtml(model) {
           new maplibregl.Marker({ element: markerEl, anchor: 'bottom' }).setLngLat(center).addTo(map);
         }
 
-        map.once('idle', () => { window.__MAP_READY = true; });
-      } catch (_error) {
+        phase = 'awaiting map idle';
+        map.once('idle', () => {
+          logStep('after map idle');
+          window.__MAP_READY = true;
+        });
+      } catch (error) {
+        reportBootError(error, phase);
         window.__MAP_READY = true;
       }
     }
