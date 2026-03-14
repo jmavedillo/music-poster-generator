@@ -189,10 +189,10 @@ function renderHtml(model) {
     .overlay-card,
     .overlay-message {
       position: absolute;
-      background: rgba(252, 252, 249, 0.95);
-      border: 1px solid rgba(12, 12, 12, 0.75);
+      background: #ffffff;
+      border: none;
       border-radius: 3px;
-      box-shadow: 0 1px 0 rgba(15, 15, 15, 0.18);
+      box-shadow: none;
     }
 
     .overlay-card {
@@ -208,7 +208,7 @@ function renderHtml(model) {
       grid-template-columns: auto 1fr;
       gap: 7px;
       align-items: center;
-      max-width: min(52%, 340px);
+      max-width: min(47%, 320px);
     }
 
     .overlay-card--place {
@@ -304,7 +304,7 @@ function renderHtml(model) {
 
     .message-strips {
       position: absolute;
-      left: 16px;
+      left: -24px;
       bottom: 20px;
       z-index: 5;
       display: grid;
@@ -316,12 +316,12 @@ function renderHtml(model) {
       margin: 0;
       text-wrap: balance;
       text-transform: uppercase;
-      background: rgba(255, 255, 255, 0.98);
-      border: 1px solid rgba(20, 20, 20, 0.82);
-      box-shadow: 0 1px 0 rgba(20, 20, 20, 0.16);
+      background: #ffffff;
+      border: none;
+      box-shadow: none;
       width: fit-content;
-      max-width: min(88%, 37ch);
-      padding: 2px 10px 1px;
+      max-width: min(calc(88% + 24px), 40ch);
+      padding: 2px 12px 1px 36px;
     }
 
     .message-strip--support {
@@ -339,7 +339,7 @@ function renderHtml(model) {
       font-weight: 900;
       letter-spacing: 0.02em;
       color: var(--accent-red);
-      padding: 1px 12px 0;
+      padding: 1px 14px 0 36px;
     }
 
     .maplibregl-ctrl-top-right { top: 10px; right: 10px; }
@@ -380,8 +380,8 @@ function renderHtml(model) {
     const BASE_STYLE_URL = 'https://tiles.openfreemap.org/styles/positron';
     const DEFAULT_DETAIL_LEVEL = 'Closer';
     const DETAIL_LEVEL_ZOOM_OFFSET = { Close: -0.8, Closer: -0.2, 'Very Close': 0.4 };
-    const CONTEXT_ZOOM_REDUCTION = 1.15;
-    const PIN_VERTICAL_OFFSET_PX = 124;
+    const CONTEXT_ZOOM_REDUCTION = 2.15;
+    const PIN_VERTICAL_OFFSET_PX = 76;
     const EXAMPLE_LOCATIONS = {
       'Madrid, Spain': { lat: 40.4168, lon: -3.7038, display_name: 'Madrid, Spain', addresstype: 'city' },
       'Puerta del Sol, Madrid': { lat: 40.4169, lon: -3.7035, display_name: 'Puerta del Sol, Madrid', addresstype: 'amenity' },
