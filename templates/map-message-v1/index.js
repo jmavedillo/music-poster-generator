@@ -179,6 +179,7 @@ function renderHtml(model) {
   const mapQuery = model.mapQuery || 'Puerta del Sol, Madrid';
   const isStyle2 = model.styleVariant === 'style2';
   const accentColor = isStyle2 ? '#f29a9f' : '#d72638';
+  const variantClass = `poster-variant-${model.styleVariant}`;
 
   return `<!doctype html>
 <html>
@@ -240,6 +241,14 @@ function renderHtml(model) {
       inset: 7px;
       z-index: 4;
       pointer-events: none;
+    }
+
+    .map-bottom-fade {
+      position: absolute;
+      inset: 7px;
+      z-index: 3;
+      pointer-events: none;
+      display: none;
     }
 
     .overlay-card,
@@ -453,12 +462,44 @@ function renderHtml(model) {
     .maplibregl-ctrl-attrib {
       display: none !important;
     }
+
+    .poster-variant-style2 .map-bottom-fade {
+      display: block;
+      background: linear-gradient(
+        180deg,
+        rgba(8, 25, 47, 0) 53%,
+        rgba(8, 25, 47, 0.36) 70%,
+        rgba(7, 20, 39, 0.74) 86%,
+        rgba(6, 17, 34, 0.95) 100%
+      );
+    }
+
+    .poster-variant-style2 .message-strips {
+      left: 10px;
+    }
+
+    .poster-variant-style2 .message-strip--support {
+      background: linear-gradient(90deg, rgba(8, 25, 47, 0.82) 0%, rgba(8, 25, 47, 0.56) 100%);
+      box-shadow: none;
+      color: #c7e0ee;
+      letter-spacing: 0.07em;
+      padding-left: 12px;
+    }
+
+    .poster-variant-style2 .message-strip--hero {
+      background: transparent;
+      box-shadow: none;
+      color: #f29a9f;
+      text-shadow: 0 2px 8px rgba(6, 17, 34, 0.45);
+      padding-left: 0;
+    }
   </style>
 </head>
 <body>
-  <article class="poster">
+  <article class="poster ${variantClass}">
     <section class="poster-frame">
       <div id="map" class="poster-map" aria-hidden="true"></div>
+      <div class="map-bottom-fade" aria-hidden="true"></div>
       <section class="communication-overlay">
         ${renderSongCard(model)}
         ${renderPlaceCard(model)}
@@ -718,9 +759,9 @@ function renderHtml(model) {
 
         const roadWeight = classifyRoadWeight(id);
         const roadPalette = {
-          major: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.08, 12, 0.3, 15, 0.58, 17, 0.85], opacity: 0.26 },
-          secondary: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.05, 12, 0.2, 15, 0.42, 17, 0.66], opacity: 0.2 },
-          minor: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.02, 12, 0.12, 15, 0.26, 17, 0.42], opacity: 0.14 },
+          major: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.1, 12, 0.34, 15, 0.64, 17, 0.92], opacity: 0.31 },
+          secondary: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.06, 12, 0.23, 15, 0.46, 17, 0.72], opacity: 0.24 },
+          minor: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.03, 12, 0.14, 15, 0.3, 17, 0.46], opacity: 0.17 },
         };
 
         const pick = roadPalette[roadWeight];
