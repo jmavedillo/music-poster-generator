@@ -166,7 +166,7 @@ function normalizePayload(payload = {}) {
   model.showIntro = hasContent(model.message.intro);
   model.showMain = hasContent(model.message.main);
   model.showMessageBand = model.showIntro || model.showMain;
-  model.showPhotoCard = model.styleVariant === 'style3' && hasContent(model.photoUrl);
+  model.showPhotoCard = (model.styleVariant === 'style1' || model.styleVariant === 'style2' || model.styleVariant === 'style3') && hasContent(model.photoUrl);
 
   return model;
 }
@@ -366,6 +366,7 @@ function renderHtml(model) {
       background: #dbeaf2;
     }
 
+    .poster-variant-style2 .overlay-photo-media::after,
     .poster-variant-style3 .overlay-photo-media::after {
       content: '';
       position: absolute;
@@ -377,6 +378,15 @@ function renderHtml(model) {
     }
 
     .overlay-photo-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 26%;
+      filter: grayscale(1) contrast(1.12) brightness(0.95);
+    }
+
+    .poster-variant-style2 .overlay-photo-image,
+    .poster-variant-style3 .overlay-photo-image {
       width: 100%;
       height: 100%;
       object-fit: cover;
