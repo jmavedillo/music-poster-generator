@@ -3,22 +3,30 @@ const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml } = require('../shared');
 const FALLBACK_COVER_DATA_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ececec'/%3E%3Cstop offset='100%25' stop-color='%23d9d9d9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='12' fill='url(%23g)'/%3E%3Cpath d='M23 82l21-21 13 13 16-19 24 27H23z' fill='rgba(0,0,0,0.18)'/%3E%3Ccircle cx='42' cy='40' r='8' fill='rgba(0,0,0,0.2)'/%3E%3C/svg%3E";
 const MESSAGE_LAYOUT_POLICY = {
   intro: {
-    maxChars: 160,
-    scaleStart: 26,
-    scaleEnd: 62,
+    maxChars: 280,
     maxFontPx: 15,
     minFontPx: 11.8,
-    minWidthCh: 36,
-    maxWidthCh: 64,
+    horizontalPaddingPx: 48,
+    maxStripWidthPx: {
+      style1: 340,
+      style2: 344,
+      style3: 344,
+    },
+    letterSpacingEm: 0.06,
+    fontWidthFactor: 0.56,
   },
   main: {
-    maxChars: 160,
-    scaleStart: 20,
-    scaleEnd: 58,
+    maxChars: 280,
     maxFontPx: 60,
     minFontPx: 43,
-    minWidthCh: 20,
-    maxWidthCh: 42,
+    horizontalPaddingPx: 50,
+    maxStripWidthPx: {
+      style1: 342,
+      style2: 348,
+      style3: 348,
+    },
+    letterSpacingEm: 0.02,
+    fontWidthFactor: 0.62,
   },
 };
 const ALLOWED_STYLE_VARIANTS = new Set(['style1', 'style2', 'style3']);
@@ -36,34 +44,92 @@ function toFixedCssNumber(value, digits = 2) {
   return Number(value.toFixed(digits));
 }
 
-function interpolateByLength(length, startLength, endLength, maxValue, minValue) {
-  if (length <= startLength) {
-    return maxValue;
-  }
-
-  if (length >= endLength) {
-    return minValue;
-  }
-
-  const ratio = (length - startLength) / Math.max(1, endLength - startLength);
-  return maxValue - (maxValue - minValue) * ratio;
+function estimateCharacterWidthEm(char) {
+  if (char === ' ') return 0.33;
+  if (/[A-Z]/.test(char)) return 0.71;
+  if (/[a-z]/.test(char)) return 0.58;
+  if (/[0-9]/.test(char)) return 0.56;
+  if (/[.,'`:;!|]/.test(char)) return 0.28;
+  if (/[-_/+]/.test(char)) return 0.35;
+  if (/[MW]/.test(char)) return 0.84;
+  if (/[ÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖÜÑ]/.test(char)) return 0.74;
+  if (/[áéíóúàèìòùâêîôûäëïöüñ]/.test(char)) return 0.6;
+  return 0.62;
 }
 
-function buildMessageStripSizing(text, policy) {
-  const length = text.length;
-  const fontSizePx = toFixedCssNumber(
-    interpolateByLength(length, policy.scaleStart, policy.scaleEnd, policy.maxFontPx, policy.minFontPx),
-    2,
-  );
-  const targetWidthCh = toFixedCssNumber(
-    interpolateByLength(length, policy.scaleStart, policy.scaleEnd, policy.minWidthCh, policy.maxWidthCh),
-    2,
-  );
+function estimateTextWidthPx(text, options) {
+  const { fontSizePx, letterSpacingEm, fontWidthFactor } = options;
+  if (!text) {
+    return 0;
+  }
+
+  let widthEm = 0;
+  for (const char of text) {
+    widthEm += estimateCharacterWidthEm(char);
+  }
+
+  const spacingPx = Math.max(0, text.length - 1) * fontSizePx * letterSpacingEm;
+  return (widthEm * fontSizePx * fontWidthFactor) + spacingPx;
+}
+
+function fitTextToWidth(text, policy, styleVariant) {
+  const maxStripWidthPx = policy.maxStripWidthPx[styleVariant] || policy.maxStripWidthPx.style1;
+  const textWidthBudgetPx = Math.max(1, maxStripWidthPx - policy.horizontalPaddingPx);
+  const normalized = clampText(text, policy.maxChars);
+
+  let fontSizePx = policy.maxFontPx;
+  while (fontSizePx > policy.minFontPx) {
+    const estimatedWidthPx = estimateTextWidthPx(normalized, {
+      fontSizePx,
+      letterSpacingEm: policy.letterSpacingEm,
+      fontWidthFactor: policy.fontWidthFactor,
+    });
+
+    if (estimatedWidthPx <= textWidthBudgetPx) {
+      break;
+    }
+
+    fontSizePx = toFixedCssNumber(fontSizePx - 0.5, 2);
+  }
+
+  let displayText = normalized;
+  const minFontEstimatedWidthPx = estimateTextWidthPx(displayText, {
+    fontSizePx,
+    letterSpacingEm: policy.letterSpacingEm,
+    fontWidthFactor: policy.fontWidthFactor,
+  });
+
+  if (fontSizePx <= policy.minFontPx && minFontEstimatedWidthPx > textWidthBudgetPx) {
+    const ellipsis = '...';
+    let low = 0;
+    let high = displayText.length;
+    let best = ellipsis;
+
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const candidate = `${displayText.slice(0, mid).trimEnd()}${ellipsis}`;
+      const candidateWidthPx = estimateTextWidthPx(candidate, {
+        fontSizePx,
+        letterSpacingEm: policy.letterSpacingEm,
+        fontWidthFactor: policy.fontWidthFactor,
+      });
+
+      if (candidateWidthPx <= textWidthBudgetPx) {
+        best = candidate;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+
+    displayText = best;
+  }
 
   return {
-    fontSizePx,
-    targetWidthCh,
-    style: `--strip-font-size: ${fontSizePx}px; --strip-target-width-ch: ${targetWidthCh};`,
+    displayText,
+    fontSizePx: toFixedCssNumber(Math.max(policy.minFontPx, fontSizePx), 2),
+    maxStripWidthPx,
+    style: `--strip-font-size: ${toFixedCssNumber(Math.max(policy.minFontPx, fontSizePx), 2)}px; --strip-max-width: ${maxStripWidthPx}px;`,
   };
 }
 
@@ -225,12 +291,12 @@ function renderTimeCard(model) {
 
 function renderMessageBand(model) {
   if (!model.showMessageBand) return '';
-  const introSizing = buildMessageStripSizing(model.message.intro, MESSAGE_LAYOUT_POLICY.intro);
-  const heroSizing = buildMessageStripSizing(model.message.main, MESSAGE_LAYOUT_POLICY.main);
+  const introSizing = fitTextToWidth(model.message.intro, MESSAGE_LAYOUT_POLICY.intro, model.styleVariant);
+  const heroSizing = fitTextToWidth(model.message.main, MESSAGE_LAYOUT_POLICY.main, model.styleVariant);
 
   return `<section class="message-strips" id="message-band">
-    ${model.showIntro ? `<p class="message-strip message-strip--support" id="message-band-support" style="${introSizing.style}">${escapeHtml(model.message.intro)}</p>` : ''}
-    ${model.showMain ? `<p class="message-strip message-strip--hero" id="message-band-hero" style="${heroSizing.style}">${escapeHtml(model.message.main)}</p>` : ''}
+    ${model.showIntro ? `<p class="message-strip message-strip--support" id="message-band-support" style="${introSizing.style}">${escapeHtml(introSizing.displayText)}</p>` : ''}
+    ${model.showMain ? `<p class="message-strip message-strip--hero" id="message-band-hero" style="${heroSizing.style}">${escapeHtml(heroSizing.displayText)}</p>` : ''}
   </section>`;
 }
 
@@ -510,7 +576,7 @@ function renderHtml(model) {
       border: none;
       box-shadow: none;
       width: fit-content;
-      max-width: min(calc(100% - 10px), calc(var(--strip-target-width-ch, 16) * 1ch + 36px));
+      max-width: min(calc(100% - 10px), var(--strip-max-width, 340px));
       padding: 2px 12px 1px 36px;
       overflow: hidden;
       white-space: nowrap;
@@ -533,7 +599,7 @@ function renderHtml(model) {
       letter-spacing: 0.02em;
       color: var(--accent-red);
       padding: 1px 14px 0 36px;
-      max-width: min(calc(100% - 10px), calc(var(--strip-target-width-ch, 12) * 1ch + 36px));
+      max-width: min(calc(100% - 10px), var(--strip-max-width, 340px));
     }
 
     .maplibregl-ctrl-top-right { top: 10px; right: 10px; }
