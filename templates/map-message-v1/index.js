@@ -1,30 +1,21 @@
 const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml } = require('../shared');
 
 const FALLBACK_COVER_DATA_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ececec'/%3E%3Cstop offset='100%25' stop-color='%23d9d9d9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='12' fill='url(%23g)'/%3E%3Cpath d='M23 82l21-21 13 13 16-19 24 27H23z' fill='rgba(0,0,0,0.18)'/%3E%3Ccircle cx='42' cy='40' r='8' fill='rgba(0,0,0,0.2)'/%3E%3C/svg%3E";
+const MESSAGE_STRIP_RIGHT_SAFE_PX = 10;
 const MESSAGE_LAYOUT_POLICY = {
   intro: {
     maxChars: 280,
     maxFontPx: 15,
     minFontPx: 11.8,
     horizontalPaddingPx: 48,
-    maxStripWidthPx: {
-      style1: 340,
-      style2: 344,
-      style3: 344,
-    },
     letterSpacingEm: 0.06,
     fontWidthFactor: 0.56,
   },
   main: {
     maxChars: 280,
     maxFontPx: 60,
-    minFontPx: 43,
+    minFontPx: 50,
     horizontalPaddingPx: 50,
-    maxStripWidthPx: {
-      style1: 342,
-      style2: 348,
-      style3: 348,
-    },
     letterSpacingEm: 0.02,
     fontWidthFactor: 0.62,
   },
@@ -72,8 +63,12 @@ function estimateTextWidthPx(text, options) {
   return (widthEm * fontSizePx * fontWidthFactor) + spacingPx;
 }
 
-function fitTextToWidth(text, policy, styleVariant) {
-  const maxStripWidthPx = policy.maxStripWidthPx[styleVariant] || policy.maxStripWidthPx.style1;
+function calculateMaxMessageStripWidthPx() {
+  return Math.max(1, POSTER_WIDTH - MESSAGE_STRIP_RIGHT_SAFE_PX);
+}
+
+function fitTextToWidth(text, policy) {
+  const maxStripWidthPx = calculateMaxMessageStripWidthPx();
   const textWidthBudgetPx = Math.max(1, maxStripWidthPx - policy.horizontalPaddingPx);
   const normalized = clampText(text, policy.maxChars);
 
@@ -291,8 +286,8 @@ function renderTimeCard(model) {
 
 function renderMessageBand(model) {
   if (!model.showMessageBand) return '';
-  const introSizing = fitTextToWidth(model.message.intro, MESSAGE_LAYOUT_POLICY.intro, model.styleVariant);
-  const heroSizing = fitTextToWidth(model.message.main, MESSAGE_LAYOUT_POLICY.main, model.styleVariant);
+  const introSizing = fitTextToWidth(model.message.intro, MESSAGE_LAYOUT_POLICY.intro);
+  const heroSizing = fitTextToWidth(model.message.main, MESSAGE_LAYOUT_POLICY.main);
 
   return `<section class="message-strips" id="message-band">
     ${model.showIntro ? `<p class="message-strip message-strip--support" id="message-band-support" style="${introSizing.style}">${escapeHtml(introSizing.displayText)}</p>` : ''}
