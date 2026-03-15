@@ -22,6 +22,11 @@ const MESSAGE_LAYOUT_POLICY = {
   },
 };
 const ALLOWED_STYLE_VARIANTS = new Set(['style1', 'style2', 'style3']);
+const STYLE_VARIANT_LABELS = Object.freeze({
+  style1: 'White',
+  style2: 'Navy',
+  style3: 'Green',
+});
 
 function clampText(value, maxLength) {
   const text = normalizeText(value);
@@ -1331,6 +1336,7 @@ module.exports = {
   id: 'map_message_v1',
   displayName: 'Map Message',
   description: 'Location-based message poster with map background and cards.',
+  styleVariantOptions: Object.entries(STYLE_VARIANT_LABELS).map(([value, label]) => ({ value, label })),
   defaultTheme: 'light',
   normalizePayload,
   renderHtml,
