@@ -1,8 +1,26 @@
 const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml } = require('../shared');
 
 const FALLBACK_COVER_DATA_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ececec'/%3E%3Cstop offset='100%25' stop-color='%23d9d9d9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='12' fill='url(%23g)'/%3E%3Cpath d='M23 82l21-21 13 13 16-19 24 27H23z' fill='rgba(0,0,0,0.18)'/%3E%3Ccircle cx='42' cy='40' r='8' fill='rgba(0,0,0,0.2)'/%3E%3C/svg%3E";
-const INTRO_MAX_LENGTH = 56;
-const MAIN_MAX_LENGTH = 86;
+const MESSAGE_LAYOUT_POLICY = {
+  intro: {
+    maxChars: 16,
+    scaleStart: 8,
+    scaleEnd: 16,
+    maxFontPx: 15,
+    minFontPx: 12.8,
+    minWidthCh: 14,
+    maxWidthCh: 24,
+  },
+  main: {
+    maxChars: 20,
+    scaleStart: 10,
+    scaleEnd: 20,
+    maxFontPx: 60,
+    minFontPx: 48,
+    minWidthCh: 10,
+    maxWidthCh: 20,
+  },
+};
 const ALLOWED_STYLE_VARIANTS = new Set(['style1', 'style2', 'style3']);
 
 function clampText(value, maxLength) {
@@ -11,17 +29,42 @@ function clampText(value, maxLength) {
     return text;
   }
 
-  return `${text.slice(0, maxLength - 1).trimEnd()}…`;
+  return `${text.slice(0, maxLength - 3).trimEnd()}...`;
 }
 
-function getMessageSizeClass(length, thresholds, classes) {
-  for (let i = 0; i < thresholds.length; i += 1) {
-    if (length <= thresholds[i]) {
-      return classes[i];
-    }
+function toFixedCssNumber(value, digits = 2) {
+  return Number(value.toFixed(digits));
+}
+
+function interpolateByLength(length, startLength, endLength, maxValue, minValue) {
+  if (length <= startLength) {
+    return maxValue;
   }
 
-  return classes[classes.length - 1];
+  if (length >= endLength) {
+    return minValue;
+  }
+
+  const ratio = (length - startLength) / Math.max(1, endLength - startLength);
+  return maxValue - (maxValue - minValue) * ratio;
+}
+
+function buildMessageStripSizing(text, policy) {
+  const length = text.length;
+  const fontSizePx = toFixedCssNumber(
+    interpolateByLength(length, policy.scaleStart, policy.scaleEnd, policy.maxFontPx, policy.minFontPx),
+    2,
+  );
+  const targetWidthCh = toFixedCssNumber(
+    interpolateByLength(length, policy.scaleStart, policy.scaleEnd, policy.minWidthCh, policy.maxWidthCh),
+    2,
+  );
+
+  return {
+    fontSizePx,
+    targetWidthCh,
+    style: `--strip-font-size: ${fontSizePx}px; --strip-target-width-ch: ${targetWidthCh};`,
+  };
 }
 
 function normalizeOutput(output = {}) {
@@ -106,8 +149,8 @@ function normalizePayload(payload = {}) {
       timeText: normalizeText(time.timeText),
     },
     message: {
-      intro: clampText(message.intro, INTRO_MAX_LENGTH),
-      main: clampText(message.main, MAIN_MAX_LENGTH),
+      intro: clampText(message.intro, MESSAGE_LAYOUT_POLICY.intro.maxChars),
+      main: clampText(message.main, MESSAGE_LAYOUT_POLICY.main.maxChars),
     },
     output: normalizeOutput(payload.output),
   };
@@ -182,13 +225,12 @@ function renderTimeCard(model) {
 
 function renderMessageBand(model) {
   if (!model.showMessageBand) return '';
-
-  const heroClass = getMessageSizeClass(model.message.main.length, [20, 36, 54, 72], ['message-strip--hero-xl', 'message-strip--hero-lg', 'message-strip--hero-md', 'message-strip--hero-sm', 'message-strip--hero-xs']);
-  const supportClass = getMessageSizeClass(model.message.intro.length, [24, 40], ['message-strip--support-lg', 'message-strip--support-md', 'message-strip--support-sm']);
+  const introSizing = buildMessageStripSizing(model.message.intro, MESSAGE_LAYOUT_POLICY.intro);
+  const heroSizing = buildMessageStripSizing(model.message.main, MESSAGE_LAYOUT_POLICY.main);
 
   return `<section class="message-strips" id="message-band">
-    ${model.showIntro ? `<p class="message-strip message-strip--support ${supportClass}" id="message-band-support">${escapeHtml(model.message.intro)}</p>` : ''}
-    ${model.showMain ? `<p class="message-strip message-strip--hero ${heroClass}" id="message-band-hero">${escapeHtml(model.message.main)}</p>` : ''}
+    ${model.showIntro ? `<p class="message-strip message-strip--support" id="message-band-support" style="${introSizing.style}">${escapeHtml(model.message.intro)}</p>` : ''}
+    ${model.showMain ? `<p class="message-strip message-strip--hero" id="message-band-hero" style="${heroSizing.style}">${escapeHtml(model.message.main)}</p>` : ''}
   </section>`;
 }
 
@@ -458,41 +500,31 @@ function renderHtml(model) {
       border: none;
       box-shadow: none;
       width: fit-content;
-      max-width: min(calc(80% + 24px), 38ch);
+      max-width: min(calc(100% - 18px), calc(var(--strip-target-width-ch, 16) * 1ch + 36px));
       padding: 2px 12px 1px 36px;
       overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
     .message-strip--support {
+      font-size: var(--strip-font-size, 15px);
       line-height: 1.08;
       font-weight: 650;
       letter-spacing: 0.06em;
       color: #303030;
     }
 
-    .message-strip--support-lg { font-size: 15px; }
-    .message-strip--support-md { font-size: 14px; }
-    .message-strip--support-sm { font-size: 13px; }
-
     .message-strip--hero {
+      font-size: var(--strip-font-size, 60px);
       font-family: 'Avenir Next Condensed', 'Franklin Gothic Heavy', 'Arial Narrow', 'Arial Black', 'Inter', sans-serif;
       line-height: 0.86;
       font-weight: 900;
       letter-spacing: 0.02em;
       color: var(--accent-red);
       padding: 1px 14px 0 36px;
-      max-width: min(calc(76% + 24px), 30ch);
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-      line-clamp: 2;
+      max-width: min(calc(100% - 18px), calc(var(--strip-target-width-ch, 12) * 1ch + 36px));
     }
-
-    .message-strip--hero-xl { font-size: 60px; }
-    .message-strip--hero-lg { font-size: 58px; }
-    .message-strip--hero-md { font-size: 55px; }
-    .message-strip--hero-sm { font-size: 52px; }
-    .message-strip--hero-xs { font-size: 48px; }
 
     .maplibregl-ctrl-top-right { top: 10px; right: 10px; }
     .maplibregl-ctrl-bottom-right {
