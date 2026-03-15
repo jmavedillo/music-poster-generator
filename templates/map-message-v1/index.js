@@ -2,6 +2,8 @@ const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml } = require('../shared');
 
 const FALLBACK_COVER_DATA_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ececec'/%3E%3Cstop offset='100%25' stop-color='%23d9d9d9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='12' fill='url(%23g)'/%3E%3Cpath d='M23 82l21-21 13 13 16-19 24 27H23z' fill='rgba(0,0,0,0.18)'/%3E%3Ccircle cx='42' cy='40' r='8' fill='rgba(0,0,0,0.2)'/%3E%3C/svg%3E";
 const MESSAGE_STRIP_RIGHT_SAFE_PX = 10;
+const MESSAGE_STRIP_LEFT_OFFSET_DEFAULT_PX = -24;
+const MESSAGE_STRIP_LEFT_OFFSET_ALT_PX = 10;
 const MESSAGE_LAYOUT_POLICY = {
   intro: {
     maxChars: 280,
@@ -63,12 +65,18 @@ function estimateTextWidthPx(text, options) {
   return (widthEm * fontSizePx * fontWidthFactor) + spacingPx;
 }
 
-function calculateMaxMessageStripWidthPx() {
-  return Math.max(1, POSTER_WIDTH - MESSAGE_STRIP_RIGHT_SAFE_PX);
+function calculateMessageStripLeftOffsetPx(styleVariant) {
+  const usesInsetLayout = styleVariant === 'style2' || styleVariant === 'style3';
+  return usesInsetLayout ? MESSAGE_STRIP_LEFT_OFFSET_ALT_PX : MESSAGE_STRIP_LEFT_OFFSET_DEFAULT_PX;
 }
 
-function fitTextToWidth(text, policy) {
-  const maxStripWidthPx = calculateMaxMessageStripWidthPx();
+function calculateMaxMessageStripWidthPx(styleVariant) {
+  const leftOffsetPx = calculateMessageStripLeftOffsetPx(styleVariant);
+  return Math.max(1, POSTER_WIDTH - MESSAGE_STRIP_RIGHT_SAFE_PX - leftOffsetPx);
+}
+
+function fitTextToWidth(text, policy, options = {}) {
+  const maxStripWidthPx = calculateMaxMessageStripWidthPx(options.styleVariant);
   const textWidthBudgetPx = Math.max(1, maxStripWidthPx - policy.horizontalPaddingPx);
   const normalized = clampText(text, policy.maxChars);
 
@@ -286,8 +294,9 @@ function renderTimeCard(model) {
 
 function renderMessageBand(model) {
   if (!model.showMessageBand) return '';
-  const introSizing = fitTextToWidth(model.message.intro, MESSAGE_LAYOUT_POLICY.intro);
-  const heroSizing = fitTextToWidth(model.message.main, MESSAGE_LAYOUT_POLICY.main);
+  const fitOptions = { styleVariant: model.styleVariant };
+  const introSizing = fitTextToWidth(model.message.intro, MESSAGE_LAYOUT_POLICY.intro, fitOptions);
+  const heroSizing = fitTextToWidth(model.message.main, MESSAGE_LAYOUT_POLICY.main, fitOptions);
 
   return `<section class="message-strips" id="message-band">
     ${model.showIntro ? `<p class="message-strip message-strip--support" id="message-band-support" style="${introSizing.style}">${escapeHtml(introSizing.displayText)}</p>` : ''}
@@ -557,6 +566,7 @@ function renderHtml(model) {
     .message-strips {
       position: absolute;
       left: -24px;
+      right: 10px;
       bottom: 34px;
       z-index: 5;
       display: grid;
@@ -570,8 +580,8 @@ function renderHtml(model) {
       background: #ffffff;
       border: none;
       box-shadow: none;
-      width: fit-content;
-      max-width: min(calc(100% - 10px), var(--strip-max-width, 340px));
+      width: auto;
+      max-width: min(100%, var(--strip-max-width, 340px));
       padding: 2px 12px 1px 36px;
       overflow: hidden;
       white-space: nowrap;
@@ -594,7 +604,7 @@ function renderHtml(model) {
       letter-spacing: 0.02em;
       color: var(--accent-red);
       padding: 1px 14px 0 36px;
-      max-width: min(calc(100% - 10px), var(--strip-max-width, 340px));
+      max-width: min(100%, var(--strip-max-width, 340px));
     }
 
     .maplibregl-ctrl-top-right { top: 10px; right: 10px; }
