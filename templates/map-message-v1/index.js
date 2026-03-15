@@ -3,22 +3,22 @@ const { POSTER_HEIGHT, POSTER_WIDTH, escapeHtml } = require('../shared');
 const FALLBACK_COVER_DATA_URI = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ececec'/%3E%3Cstop offset='100%25' stop-color='%23d9d9d9'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='120' height='120' rx='12' fill='url(%23g)'/%3E%3Cpath d='M23 82l21-21 13 13 16-19 24 27H23z' fill='rgba(0,0,0,0.18)'/%3E%3Ccircle cx='42' cy='40' r='8' fill='rgba(0,0,0,0.2)'/%3E%3C/svg%3E";
 const MESSAGE_LAYOUT_POLICY = {
   intro: {
-    maxChars: 16,
-    scaleStart: 8,
-    scaleEnd: 16,
+    maxChars: 160,
+    scaleStart: 26,
+    scaleEnd: 62,
     maxFontPx: 15,
-    minFontPx: 12.8,
-    minWidthCh: 14,
-    maxWidthCh: 24,
+    minFontPx: 11.8,
+    minWidthCh: 36,
+    maxWidthCh: 64,
   },
   main: {
-    maxChars: 20,
-    scaleStart: 10,
-    scaleEnd: 20,
+    maxChars: 160,
+    scaleStart: 20,
+    scaleEnd: 58,
     maxFontPx: 60,
-    minFontPx: 48,
-    minWidthCh: 10,
-    maxWidthCh: 20,
+    minFontPx: 43,
+    minWidthCh: 20,
+    maxWidthCh: 42,
   },
 };
 const ALLOWED_STYLE_VARIANTS = new Set(['style1', 'style2', 'style3']);
@@ -500,7 +500,7 @@ function renderHtml(model) {
       border: none;
       box-shadow: none;
       width: fit-content;
-      max-width: min(calc(100% - 18px), calc(var(--strip-target-width-ch, 16) * 1ch + 36px));
+      max-width: min(calc(100% - 10px), calc(var(--strip-target-width-ch, 16) * 1ch + 36px));
       padding: 2px 12px 1px 36px;
       overflow: hidden;
       white-space: nowrap;
@@ -523,7 +523,7 @@ function renderHtml(model) {
       letter-spacing: 0.02em;
       color: var(--accent-red);
       padding: 1px 14px 0 36px;
-      max-width: min(calc(100% - 18px), calc(var(--strip-target-width-ch, 12) * 1ch + 36px));
+      max-width: min(calc(100% - 10px), calc(var(--strip-target-width-ch, 12) * 1ch + 36px));
     }
 
     .maplibregl-ctrl-top-right { top: 10px; right: 10px; }
