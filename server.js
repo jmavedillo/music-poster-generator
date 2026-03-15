@@ -119,6 +119,30 @@ function mapArtist(artist) {
   };
 }
 
+
+function extractResolvedMapData(debug) {
+  const mapResolved = debug && typeof debug === 'object' ? debug.mapResolved : null;
+  if (!mapResolved || typeof mapResolved !== 'object') {
+    return null;
+  }
+
+  const lat = Number(mapResolved.lat);
+  const lng = Number(mapResolved.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null;
+  }
+
+  const googleMapsUrl = String(mapResolved.googleMapsUrl || '').trim();
+  const googleMapsDirectionsUrl = String(mapResolved.googleMapsDirectionsUrl || '').trim();
+
+  return {
+    lat,
+    lng,
+    googleMapsUrl: googleMapsUrl || undefined,
+    googleMapsDirectionsUrl: googleMapsDirectionsUrl || undefined,
+  };
+}
+
 function mapTrack(track) {
   return {
     id: track?.id || null,
@@ -145,10 +169,38 @@ app.get('/api/templates', (_req, res) => {
 app.post('/api/posters/preview', async (req, res) => {
   try {
     const { templateId, model, html } = await buildPoster(req.body || {});
+    let responseModel = model;
+    let debug;
+
+    if (templateId === 'map_message_v1') {
+      const renderer = await getPosterRenderer();
+      try {
+        debug = await renderer.collectPageDebugData({ html });
+      } catch (debugError) {
+        debug = {
+          mapReady: false,
+          mapFailed: true,
+          mapError: debugError?.message || 'Unable to collect map debug state',
+          mapSteps: ['map debug collection failed'],
+        };
+      }
+    }
+
+    if (templateId === 'map_message_v1') {
+      const map = extractResolvedMapData(debug);
+      if (map) {
+        responseModel = {
+          ...model,
+          map,
+        };
+      }
+    }
+
     return res.json({
       template: templateId,
       html,
-      model,
+      model: responseModel,
+      debug,
     });
   } catch (error) {
     const statusCode = error instanceof PosterPayloadError ? error.statusCode : 500;
@@ -164,12 +216,23 @@ app.post('/api/posters/preview', async (req, res) => {
 
 app.post('/api/posters/render', async (req, res) => {
   try {
-    const { model, html } = await buildPoster(req.body || {});
+    const { templateId, model, html } = await buildPoster(req.body || {});
     const renderer = await getPosterRenderer();
-    const { buffer, format, width, height } = await renderer.renderPosterImage({
+    const { buffer, format, width, height, debug } = await renderer.renderPosterImage({
       html,
       output: model.output,
     });
+
+    if (String(req.query.debug || '') === '1') {
+      return res.json({
+        template: templateId,
+        format,
+        width,
+        height,
+        imageBase64: buffer.toString('base64'),
+        debug: templateId === 'map_message_v1' ? debug : undefined,
+      });
+    }
 
     res.setHeader('Content-Type', format === 'png' ? 'image/png' : 'image/jpeg');
     res.setHeader('Content-Disposition', `attachment; filename="poster-${width}x${height}.${format === 'png' ? 'png' : 'jpg'}"`);
