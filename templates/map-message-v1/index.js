@@ -555,8 +555,7 @@ function renderHtml(model) {
       display: none !important;
     }
 
-    .poster-variant-style2 .map-bottom-fade,
-    .poster-variant-style3 .map-bottom-fade {
+    .poster-variant-style2 .map-bottom-fade {
       display: block;
       background: linear-gradient(
         180deg,
@@ -567,13 +566,23 @@ function renderHtml(model) {
       );
     }
 
+    .poster-variant-style3 .map-bottom-fade {
+      display: block;
+      background: linear-gradient(
+        180deg,
+        rgba(18, 38, 28, 0) 52%,
+        rgba(23, 56, 40, 0.36) 70%,
+        rgba(20, 52, 36, 0.74) 86%,
+        rgba(16, 43, 30, 0.95) 100%
+      );
+    }
+
     .poster-variant-style2 .message-strips,
     .poster-variant-style3 .message-strips {
       left: 10px;
     }
 
-    .poster-variant-style2 .message-strip--support,
-    .poster-variant-style3 .message-strip--support {
+    .poster-variant-style2 .message-strip--support {
       background: linear-gradient(90deg, rgba(8, 25, 47, 0.82) 0%, rgba(8, 25, 47, 0.56) 100%);
       box-shadow: none;
       color: #c7e0ee;
@@ -581,13 +590,36 @@ function renderHtml(model) {
       padding-left: 12px;
     }
 
-    .poster-variant-style2 .message-strip--hero,
-    .poster-variant-style3 .message-strip--hero {
+    .poster-variant-style3 .message-strip--support {
+      background: linear-gradient(90deg, rgba(18, 45, 33, 0.84) 0%, rgba(24, 57, 42, 0.58) 100%);
+      box-shadow: none;
+      color: #ffffff;
+      letter-spacing: 0.07em;
+      padding-left: 12px;
+    }
+
+    .poster-variant-style2 .message-strip--hero {
       background: transparent;
       box-shadow: none;
       color: #f29a9f;
       text-shadow: 0 2px 8px rgba(6, 17, 34, 0.45);
       padding-left: 0;
+    }
+
+    .poster-variant-style3 .message-strip--hero {
+      background: transparent;
+      box-shadow: none;
+      color: #ffffff;
+      text-shadow: 0 2px 10px rgba(16, 43, 30, 0.5);
+      padding-left: 0;
+    }
+
+    .poster-variant-style3 .pin-marker__inner {
+      background: #ffffff;
+    }
+
+    .poster-variant-style3 .pin-marker__inner::before {
+      background: #214e38;
     }
   </style>
 </head>
@@ -877,7 +909,138 @@ function renderHtml(model) {
     }
 
     function restyleLayerStyle3(layer) {
-      return restyleLayerStyle2(layer);
+      const id = layer.id || '';
+
+      if (layer.type === 'symbol' || layer.type === 'circle' || layer.type === 'heatmap' || layer.type === 'fill-extrusion') {
+        return { ...layer, layout: { ...(layer.layout || {}), visibility: 'none' } };
+      }
+
+      if (layer.type === 'background') {
+        return { ...layer, paint: { ...(layer.paint || {}), 'background-color': '#edf0ec' } };
+      }
+
+      if (layer.type === 'fill') {
+        if (/(water|ocean|river|lake|reservoir|basin|canal)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'fill-color': '#d9dfe0',
+              'fill-opacity': 0.88,
+            },
+          };
+        }
+
+        if (/(building|building-part|structure|footprint)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'fill-color': '#d2d7d2',
+              'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.34, 13, 0.52, 16, 0.66],
+            },
+          };
+        }
+
+        if (/(pitch|stadium|sports|sport|recreation|leisure|golf|playing)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'fill-color': '#6f8f74',
+              'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.52, 13, 0.64, 16, 0.76],
+            },
+          };
+        }
+
+        if (/(park|grass|garden|green|meadow)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'fill-color': '#85a786',
+              'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.36, 13, 0.48, 16, 0.6],
+            },
+          };
+        }
+
+        if (/(wood|forest|natural)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'fill-color': '#9ab39a',
+              'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.2, 13, 0.3, 16, 0.42],
+            },
+          };
+        }
+
+        if (/(residential|commercial|industrial|construction|neighbourhood|neighborhood|landcover|landuse)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'fill-color': '#e4e8e2',
+              'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.26, 13, 0.36, 16, 0.5],
+            },
+          };
+        }
+
+        return {
+          ...layer,
+          paint: {
+            ...(layer.paint || {}),
+            'fill-color': '#e8ece7',
+            'fill-opacity': ['interpolate', ['linear'], ['zoom'], 10, 0.2, 13, 0.3, 16, 0.42],
+          },
+        };
+      }
+
+      if (layer.type === 'line') {
+        if (/(boundary|admin|border)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'line-color': '#5a625d',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.16, 12, 0.48, 16, 0.74],
+              'line-opacity': 0.48,
+            },
+          };
+        }
+
+        if (/(bridge|tunnel|rail|transit|ferry)/i.test(id)) {
+          return {
+            ...layer,
+            paint: {
+              ...(layer.paint || {}),
+              'line-color': '#3f4842',
+              'line-width': ['interpolate', ['linear'], ['zoom'], 8, 0.12, 12, 0.36, 16, 0.72],
+              'line-opacity': 0.34,
+            },
+          };
+        }
+
+        const roadWeight = classifyRoadWeight(id);
+        const roadPalette = {
+          major: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.84, 12, 1.62, 15, 2.58, 17, 3.8], opacity: 0.88 },
+          secondary: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.48, 12, 0.98, 15, 1.52, 17, 2.22], opacity: 0.78 },
+          minor: { width: ['interpolate', ['linear'], ['zoom'], 8, 0.2, 12, 0.48, 15, 0.88, 17, 1.3], opacity: 0.62 },
+        };
+
+        const pick = roadPalette[roadWeight];
+        return {
+          ...layer,
+          paint: {
+            ...(layer.paint || {}),
+            'line-color': '#1f2521',
+            'line-width': pick.width,
+            'line-opacity': pick.opacity,
+          },
+        };
+      }
+
+      return layer;
     }
 
     function resolveMapStyleVariant(variant) {
