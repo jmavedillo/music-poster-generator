@@ -316,6 +316,7 @@ function renderHtml(model) {
     }
 
     .overlay-photo-media {
+      position: relative;
       width: 100%;
       aspect-ratio: 4 / 5;
       border-radius: 2px;
@@ -323,12 +324,26 @@ function renderHtml(model) {
       background: #dbeaf2;
     }
 
+    .poster-variant-style3 .overlay-photo-media::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(
+        165deg,
+        rgba(181, 215, 236, 0.18) 8%,
+        rgba(41, 83, 122, 0.24) 52%,
+        rgba(12, 38, 66, 0.34) 100%
+      );
+      mix-blend-mode: multiply;
+    }
+
     .overlay-photo-image {
       width: 100%;
       height: 100%;
       object-fit: cover;
       object-position: center 26%;
-      filter: saturate(0.9) hue-rotate(6deg) contrast(1.04) brightness(0.95);
+      filter: grayscale(0.92) saturate(0.7) contrast(1.11) brightness(0.93) hue-rotate(6deg);
     }
 
     .overlay-song-cover {
