@@ -328,13 +328,9 @@ function renderHtml(model) {
       content: '';
       position: absolute;
       inset: 0;
+      z-index: 1;
       pointer-events: none;
-      background: linear-gradient(
-        165deg,
-        rgba(181, 215, 236, 0.18) 8%,
-        rgba(41, 83, 122, 0.24) 52%,
-        rgba(12, 38, 66, 0.34) 100%
-      );
+      background: rgba(93, 154, 208, 0.28);
       mix-blend-mode: multiply;
     }
 
@@ -343,7 +339,7 @@ function renderHtml(model) {
       height: 100%;
       object-fit: cover;
       object-position: center 26%;
-      filter: grayscale(0.92) saturate(0.7) contrast(1.11) brightness(0.93) hue-rotate(6deg);
+      filter: grayscale(0.96) saturate(0.5) contrast(1.15) brightness(0.94) hue-rotate(8deg);
     }
 
     .overlay-song-cover {
