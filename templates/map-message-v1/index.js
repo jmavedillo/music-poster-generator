@@ -71,6 +71,11 @@ function normalizeStyleVariant(value) {
   return ALLOWED_STYLE_VARIANTS.has(normalized) ? normalized : 'style1';
 }
 
+function normalizeOptionalUrl(value) {
+  const normalized = normalizeText(value);
+  return normalized || null;
+}
+
 function normalizePayload(payload = {}) {
   const song = payload.song && typeof payload.song === 'object' ? payload.song : {};
   const place = payload.place && typeof payload.place === 'object' ? payload.place : {};
@@ -81,6 +86,7 @@ function normalizePayload(payload = {}) {
   const model = {
     template: 'map_message_v1',
     styleVariant: normalizeStyleVariant(payload.styleVariant),
+    photoUrl: normalizeOptionalUrl(payload.photoUrl),
     mapQuery: normalizeText(payload.mapQuery),
     marker: {
       type: marker.type === 'pin' ? 'pin' : 'pin',
@@ -117,8 +123,19 @@ function normalizePayload(payload = {}) {
   model.showIntro = hasContent(model.message.intro);
   model.showMain = hasContent(model.message.main);
   model.showMessageBand = model.showIntro || model.showMain;
+  model.showPhotoCard = model.styleVariant === 'style3' && hasContent(model.photoUrl);
 
   return model;
+}
+
+function renderPhotoCard(model) {
+  if (!model.showPhotoCard) return '';
+
+  return `<section class="overlay-card overlay-card--photo" id="photo-card">
+    <div class="overlay-photo-media">
+      <img class="overlay-photo-image" src="${escapeHtml(model.photoUrl)}" alt="Shared memory" loading="eager" decoding="sync" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    </div>
+  </section>`;
 }
 
 function renderSongCard(model) {
@@ -177,7 +194,7 @@ function renderMessageBand(model) {
 
 function renderHtml(model) {
   const mapQuery = model.mapQuery || 'Puerta del Sol, Madrid';
-  const isStyle2 = model.styleVariant === 'style2';
+  const isStyle2 = model.styleVariant === 'style2' || model.styleVariant === 'style3';
   const accentColor = isStyle2 ? '#f29a9f' : '#d72638';
   const variantClass = `poster-variant-${model.styleVariant}`;
 
@@ -290,6 +307,28 @@ function renderHtml(model) {
       width: min(40%, 240px);
       padding-top: 6px;
       padding-bottom: 6px;
+    }
+
+    .overlay-card--photo {
+      left: 62%;
+      width: min(40%, 240px);
+      padding: 6px;
+    }
+
+    .overlay-photo-media {
+      width: 100%;
+      aspect-ratio: 4 / 5;
+      border-radius: 2px;
+      overflow: hidden;
+      background: #dbeaf2;
+    }
+
+    .overlay-photo-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 26%;
+      filter: saturate(0.9) hue-rotate(6deg) contrast(1.04) brightness(0.95);
     }
 
     .overlay-song-cover {
@@ -463,7 +502,8 @@ function renderHtml(model) {
       display: none !important;
     }
 
-    .poster-variant-style2 .map-bottom-fade {
+    .poster-variant-style2 .map-bottom-fade,
+    .poster-variant-style3 .map-bottom-fade {
       display: block;
       background: linear-gradient(
         180deg,
@@ -474,11 +514,13 @@ function renderHtml(model) {
       );
     }
 
-    .poster-variant-style2 .message-strips {
+    .poster-variant-style2 .message-strips,
+    .poster-variant-style3 .message-strips {
       left: 10px;
     }
 
-    .poster-variant-style2 .message-strip--support {
+    .poster-variant-style2 .message-strip--support,
+    .poster-variant-style3 .message-strip--support {
       background: linear-gradient(90deg, rgba(8, 25, 47, 0.82) 0%, rgba(8, 25, 47, 0.56) 100%);
       box-shadow: none;
       color: #c7e0ee;
@@ -486,7 +528,8 @@ function renderHtml(model) {
       padding-left: 12px;
     }
 
-    .poster-variant-style2 .message-strip--hero {
+    .poster-variant-style2 .message-strip--hero,
+    .poster-variant-style3 .message-strip--hero {
       background: transparent;
       box-shadow: none;
       color: #f29a9f;
@@ -504,6 +547,7 @@ function renderHtml(model) {
         ${renderSongCard(model)}
         ${renderPlaceCard(model)}
         ${renderTimeCard(model)}
+        ${renderPhotoCard(model)}
         ${renderMessageBand(model)}
       </section>
     </section>
@@ -780,8 +824,7 @@ function renderHtml(model) {
     }
 
     function restyleLayerStyle3(layer) {
-      // Placeholder branch: currently keeps style1 visuals until style3 design is defined.
-      return restyleLayerStyle1(layer);
+      return restyleLayerStyle2(layer);
     }
 
     function resolveMapStyleVariant(variant) {
@@ -858,7 +901,8 @@ function renderHtml(model) {
       const overlay = document.querySelector('.communication-overlay');
       const placeCard = document.getElementById('place-card');
       const timeCard = document.getElementById('time-card');
-      if (!overlay || (!placeCard && !timeCard)) return;
+      const photoCard = document.getElementById('photo-card');
+      if (!overlay || (!placeCard && !timeCard && !photoCard)) return;
 
       const point = map.project(pinCenter);
       const overlayRect = overlay.getBoundingClientRect();
@@ -867,9 +911,26 @@ function renderHtml(model) {
       const sideGap = 18;
       const placeWidth = placeCard ? placeCard.offsetWidth : Math.min(240, overlayRect.width * 0.4);
       const placeHeight = placeCard ? placeCard.offsetHeight : 64;
+      const timeHeight = timeCard ? (timeCard.offsetHeight || 52) : 0;
+      const photoHeight = photoCard ? (photoCard.offsetHeight || 142) : 0;
+      const gap = 12;
       const minLeft = point.x + 22 + sideGap;
       const placeLeft = clamp(minLeft, 26, overlayRect.width - placeWidth - 16);
       let placeTop = clamp(pinCenterY - (placeHeight / 2), 18, overlayRect.height - placeHeight - 18);
+
+      const messageBand = document.getElementById('message-band');
+      const messageTop = messageBand ? messageBand.getBoundingClientRect().top - overlayRect.top : Number.POSITIVE_INFINITY;
+      const clusterBottomGap = 16;
+      const timeBlock = timeCard ? (gap + timeHeight) : 0;
+      const photoBlock = photoCard ? (gap + photoHeight) : 0;
+      const clusterHeight = placeHeight + timeBlock + photoBlock;
+      const maxClusterBottom = Math.min(overlayRect.height - 18, messageTop - clusterBottomGap);
+      const maxPlaceTop = maxClusterBottom - clusterHeight;
+
+      if (Number.isFinite(maxPlaceTop)) {
+        placeTop = Math.min(placeTop, maxPlaceTop);
+      }
+      placeTop = clamp(placeTop, 18, overlayRect.height - placeHeight - 18);
 
       if (placeCard) {
         placeCard.style.top = placeTop + 'px';
@@ -877,8 +938,6 @@ function renderHtml(model) {
       }
 
       if (timeCard) {
-        const timeHeight = timeCard.offsetHeight || 52;
-        const gap = 12;
         let timeTop = placeTop + placeHeight + gap;
         const maxTimeTop = overlayRect.height - timeHeight - 18;
 
@@ -893,6 +952,24 @@ function renderHtml(model) {
 
         timeCard.style.top = clamp(timeTop, 18, maxTimeTop) + 'px';
         timeCard.style.left = placeLeft + 'px';
+
+        if (photoCard) {
+          const maxPhotoTop = Math.min(
+            overlayRect.height - photoHeight - 18,
+            messageTop - photoHeight - clusterBottomGap,
+          );
+          const photoTop = clamp(timeTop + timeHeight + gap, 18, maxPhotoTop);
+          photoCard.style.top = photoTop + 'px';
+          photoCard.style.left = placeLeft + 'px';
+        }
+      } else if (photoCard) {
+        const maxPhotoTop = Math.min(
+          overlayRect.height - photoHeight - 18,
+          messageTop - photoHeight - clusterBottomGap,
+        );
+        const photoTop = clamp(placeTop + placeHeight + gap, 18, maxPhotoTop);
+        photoCard.style.top = photoTop + 'px';
+        photoCard.style.left = placeLeft + 'px';
       }
     }
 
