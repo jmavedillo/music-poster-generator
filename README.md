@@ -35,6 +35,8 @@ templates/
     index.js
   minimal-clean-v1/
     index.js
+  minimal-reveal-v1/
+    index.js
 ```
 
 - `templates/registry.js` exposes available templates and metadata.
@@ -80,6 +82,11 @@ Base URL (local): `http://localhost:3001`
     "id": "minimal-clean-v1",
     "name": "Minimal Clean",
     "description": "Minimal alternative poster"
+  },
+  {
+    "id": "minimal-reveal-v1",
+    "name": "Minimal Reveal",
+    "description": "Minimal poster base frame for text reveal video rendering"
   }
 ]
 ```
@@ -98,7 +105,7 @@ Base URL (local): `http://localhost:3001`
   - Output: normalized model + rendered HTML.
 - `POST /api/posters/render`
   - Input: poster payload JSON.
-  - Output: rendered image binary (`image/png` or `image/jpeg`).
+  - Output: rendered image binary (`image/png` or `image/jpeg`) for standard templates, or `video/mp4` for `minimal-reveal-v1`.
 
 ### Cover Proxy
 
@@ -244,12 +251,14 @@ PORT=3001
 SPOTIFY_CLIENT_ID=your_spotify_client_id
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
 FRONTEND_ORIGINS=http://localhost:3000
+VIDEO_MICROSERVICE_URL=http://localhost:3002
 ```
 
 Notes:
 
 - `FRONTEND_ORIGINS` accepts comma-separated origins for CORS allowlisting.
 - `FRONTEND_ORIGIN` is also supported as a fallback.
+- `VIDEO_MICROSERVICE_URL` configures where `minimal-reveal-v1` delegates MP4 rendering (`POST /render`).
 
 ### 3) Run the API
 
