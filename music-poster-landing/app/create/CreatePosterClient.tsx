@@ -127,6 +127,29 @@ const sanitizeFileName = (value: string) =>
     .replace(/^-+|-+$/g, "")
     .slice(0, 80) || "poster";
 
+const getFileExtensionFromContentType = (contentType: string) => {
+  const normalized = String(contentType || "").toLowerCase();
+  if (normalized.includes("video/mp4")) return "mp4";
+  if (normalized.includes("image/png")) return "png";
+  if (normalized.includes("image/jpeg") || normalized.includes("image/jpg")) return "jpg";
+  return null;
+};
+
+const getFileNameFromDisposition = (contentDisposition: string | null) => {
+  if (!contentDisposition) return null;
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1].trim().replace(/^"|"$/g, ""));
+  }
+
+  const plainMatch = contentDisposition.match(/filename=([^;]+)/i);
+  if (plainMatch?.[1]) {
+    return plainMatch[1].trim().replace(/^"|"$/g, "");
+  }
+
+  return null;
+};
+
 const fetchJson = async <T,>(url: string): Promise<T> => {
   const response = await fetch(url);
   if (!response.ok) {
@@ -322,7 +345,10 @@ export function CreatePosterClient() {
 
       const blob = await response.blob();
       const downloadUrl = URL.createObjectURL(blob);
-      const fileName = `${sanitizeFileName(posterPayload.track.title)}-poster-${width}.jpg`;
+      const headerFileName = getFileNameFromDisposition(response.headers.get("content-disposition"));
+      const headerExtension = getFileExtensionFromContentType(response.headers.get("content-type") || blob.type);
+      const fallbackFileName = `${sanitizeFileName(posterPayload.track.title)}-poster-${width}.${headerExtension || "jpg"}`;
+      const fileName = headerFileName || fallbackFileName;
       const linkEl = document.createElement("a");
       linkEl.href = downloadUrl;
       linkEl.download = fileName;
