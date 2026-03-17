@@ -9,6 +9,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const VIDEO_MICROSERVICE_URL = String(process.env.VIDEO_MICROSERVICE_URL || 'http://localhost:3002').replace(/\/$/, '');
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
@@ -55,6 +56,121 @@ async function getPosterRenderer() {
   if (posterRenderer) return posterRenderer;
   posterRenderer = require('./poster-renderer');
   return posterRenderer;
+}
+
+function resolveRevealText(model = {}, payload = {}) {
+  const candidates = [
+    payload?.revealText,
+    payload?.text,
+    payload?.track?.title,
+    model?.track?.title,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = String(candidate || '').trim();
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return '';
+}
+
+async function renderMinimalRevealVideo({ html, model, payload }) {
+  const renderer = await getPosterRenderer();
+  let pngBuffer;
+
+  try {
+    const rendered = await renderer.renderPosterImage({
+      html,
+      output: {
+        ...model.output,
+        format: 'png',
+      },
+    });
+
+    pngBuffer = rendered?.buffer;
+  } catch (error) {
+    console.error('[minimal-reveal-v1] Base PNG generation failed:', error?.message || error);
+    const wrapped = new Error('Failed to generate base PNG for minimal-reveal-v1');
+    wrapped.statusCode = 500;
+    wrapped.code = 'MINIMAL_REVEAL_BASE_IMAGE_FAILED';
+    wrapped.details = { stage: 'png_generation' };
+    throw wrapped;
+  }
+
+  if (!pngBuffer || !Buffer.isBuffer(pngBuffer) || pngBuffer.length === 0) {
+    console.error('[minimal-reveal-v1] Base PNG generation returned empty buffer');
+    const wrapped = new Error('Failed to generate base PNG for minimal-reveal-v1');
+    wrapped.statusCode = 500;
+    wrapped.code = 'MINIMAL_REVEAL_BASE_IMAGE_FAILED';
+    wrapped.details = { stage: 'png_generation', reason: 'empty_buffer' };
+    throw wrapped;
+  }
+
+  const revealText = resolveRevealText(model, payload);
+  if (!revealText) {
+    const wrapped = new Error('Reveal text is required for minimal-reveal-v1');
+    wrapped.statusCode = 400;
+    wrapped.code = 'INVALID_REVEAL_TEXT';
+    wrapped.details = { stage: 'validation', field: 'revealText' };
+    throw wrapped;
+  }
+
+  const requestBody = {
+    text: revealText,
+    baseImage: {
+      dataBase64: pngBuffer.toString('base64'),
+    },
+  };
+
+  const endpoint = `${VIDEO_MICROSERVICE_URL}/render`;
+  let microserviceResponse;
+
+  try {
+    console.info(`[minimal-reveal-v1] Calling video microservice: ${endpoint}`);
+    microserviceResponse = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (error) {
+    console.error('[minimal-reveal-v1] Video microservice request failed:', error?.message || error);
+    const wrapped = new Error('Failed to call video microservice');
+    wrapped.statusCode = 502;
+    wrapped.code = 'VIDEO_MICROSERVICE_REQUEST_FAILED';
+    wrapped.details = { stage: 'microservice_call', endpoint };
+    throw wrapped;
+  }
+
+  if (!microserviceResponse.ok) {
+    const errorBody = await microserviceResponse.text();
+    console.error(
+      `[minimal-reveal-v1] Video microservice returned ${microserviceResponse.status}: ${errorBody || '[empty body]'}`
+    );
+
+    const wrapped = new Error(`Video microservice returned status ${microserviceResponse.status}`);
+    wrapped.statusCode = 502;
+    wrapped.code = 'VIDEO_MICROSERVICE_BAD_STATUS';
+    wrapped.details = {
+      stage: 'microservice_call',
+      endpoint,
+      responseStatus: microserviceResponse.status,
+      responseBody: errorBody || undefined,
+    };
+    throw wrapped;
+  }
+
+  const arrayBuffer = await microserviceResponse.arrayBuffer();
+  const videoBuffer = Buffer.from(arrayBuffer);
+  const contentType = microserviceResponse.headers.get('content-type') || 'video/mp4';
+
+  return {
+    buffer: videoBuffer,
+    contentType,
+  };
 }
 
 let accessToken = null;
@@ -217,6 +333,19 @@ app.post('/api/posters/preview', async (req, res) => {
 app.post('/api/posters/render', async (req, res) => {
   try {
     const { templateId, model, html } = await buildPoster(req.body || {});
+
+    if (templateId === 'minimal-reveal-v1') {
+      const { buffer, contentType } = await renderMinimalRevealVideo({
+        html,
+        model,
+        payload: req.body || {},
+      });
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', 'attachment; filename="poster-reveal.mp4"');
+      return res.send(buffer);
+    }
+
     const renderer = await getPosterRenderer();
     const { buffer, format, width, height, debug } = await renderer.renderPosterImage({
       html,
